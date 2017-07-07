@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns:rest-router="http://www.mulesoft.org/schema/mule/rest-router"
+      xsi:schemaLocation="
+      http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/3.5/mule.xsd
+      http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/3.5/mule-http.xsd
+      http://www.mulesoft.org/schema/mule/rest-router http://www.mulesoft.org/schema/mule/rest-router/current/mule-rest-router.xsd">
+
+    <rest-router:config/>
+
+    <flow name="SMSMockRestFlow" doc:name="SMS Mock REST Flow">
+
+        <http:inbound-endpoint exchange-pattern="request-response"
+                               host="0.0.0.0" port="9898"
+                               doc:name="Mock REST endpoint"/>
+        <flow-ref name="CopyHeaders"/>
+
+        <rest-router:router templateUri="/sms/send">
+            <rest-router:post>
+                    <http:response-builder contentType="application/json; charset=utf-8"
+                                           status="200"/>
+            </rest-router:post>
+        </rest-router:router>
+
+    </flow>
+
+</mule>

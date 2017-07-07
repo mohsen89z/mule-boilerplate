@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns:spring="http://www.springframework.org/schema/beans"
+      xsi:schemaLocation="
+      http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/3.5/mule.xsd
+      http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/3.5/mule-http.xsd
+      http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.2.xsd">
+
+    <spring:bean id="banksResponseBuilder"
+                 class="xyz.homapay.hampay.core.servermock.service.response.BanksResponseBuilder"/>
+
+    <spring:bean id="contactUsResponseBuilder"
+                 class="xyz.homapay.hampay.core.servermock.service.response.ContactUsResponseBuilder"/>
+
+    <spring:bean id="businessesResponseBuilder"
+                 class="xyz.homapay.hampay.core.servermock.service.response.BusinessesResponseBuilder"/>
+
+    <spring:bean id="paymentResponseBuilder"
+                 class="xyz.homapay.hampay.core.servermock.service.response.PaymentResponseBuilder"/>
+
+    <spring:bean id="registrationResponseBuilder"
+                 class="xyz.homapay.hampay.core.servermock.service.response.RegistrationResponseBuilder"/>
+
+    <spring:bean id="tacResponseBuilder"
+                 class="xyz.homapay.hampay.core.servermock.service.response.TACResponseBuilder"/>
+
+    <spring:bean id="transactionsResponseBuilder"
+                 class="xyz.homapay.hampay.core.servermock.service.response.TransactionsResponseBuilder"/>
+
+    <spring:bean id="userProfileResponseBuilder"
+                 class="xyz.homapay.hampay.core.servermock.service.response.UserProfileResponseBuilder"/>
+
+    <spring:bean id="illegalAppsResponseBuilder"
+                 class="xyz.homapay.hampay.core.servermock.service.response.IllegalAppsResponseBuilder"/>
+
+    <spring:bean id="eventResponseBuilder"
+                 class="xyz.homapay.hampay.core.servermock.service.response.EventResponseBuilder"/>
+
+    <spring:bean id="securityResponseBuilder"
+                 class="xyz.homapay.hampay.core.servermock.service.response.SecurityResponseBuilder"/>
+
+</mule>

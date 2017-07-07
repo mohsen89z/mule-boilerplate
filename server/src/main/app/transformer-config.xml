@@ -1,0 +1,339 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns:json="http://www.mulesoft.org/schema/mule/json"
+      xmlns:spring="http://www.springframework.org/schema/beans"
+      xsi:schemaLocation="
+      http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/3.5/mule.xsd
+      http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/3.5/mule-http.xsd
+      http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/3.5/mule-json.xsd
+      http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.2.xsd">
+
+    <spring:bean id="contactTransformer"
+                 class="xyz.homapay.hampay.core.server.transformers.ContactToContactDTOTransformer"/>
+
+    <json:json-to-object-transformer name="JsonToRequestMessage"
+                                     returnClass="xyz.homapay.hampay.common.common.request.RequestMessage"/>
+    <json:object-to-json-transformer name="ResponseMessageToJson"
+                                     sourceClass="xyz.homapay.hampay.common.common.response.ResponseMessage"/>
+    <json:object-to-json-transformer name="RequestMessageToJson"
+                                     sourceClass="xyz.homapay.hampay.common.common.request.RequestMessage"/>
+
+    <json:json-to-object-transformer name="JsonToIdpUserValidity"
+                                     returnClass="xyz.homapay.hampay.core.common.data.dto.IdpUserValidity"/>
+
+    <!-- Bank list request transformer -->
+    <custom-transformer class="xyz.homapay.hampay.core.server.transformers.JsonToRequestMessageTransformer"
+                        name="bankListRequestTransformer">
+        <spring:property name="payloadType" value="BankListRequest"/>
+    </custom-transformer>
+
+    <!-- Registration entry request transformer -->
+    <custom-transformer class="xyz.homapay.hampay.core.server.transformers.JsonToRequestMessageTransformer"
+                        name="registrationEntryRequestTransformer">
+        <spring:property name="payloadType" value="RegistrationEntryRequest"/>
+    </custom-transformer>
+
+    <!-- Registration send sms token request transformer -->
+    <custom-transformer class="xyz.homapay.hampay.core.server.transformers.JsonToRequestMessageTransformer"
+                        name="registrationSendSmsTokenRequestTransformer">
+        <spring:property name="payloadType" value="RegistrationSendSmsTokenRequest"/>
+    </custom-transformer>
+
+    <!-- Registration verify mobile request transformer -->
+    <custom-transformer class="xyz.homapay.hampay.core.server.transformers.JsonToRequestMessageTransformer"
+                        name="registrationVerifyMobileRequestTransformer">
+        <spring:property name="payloadType" value="RegistrationVerifyMobileRequest"/>
+    </custom-transformer>
+
+    <!-- Registration Credential entry request transformer -->
+    <custom-transformer class="xyz.homapay.hampay.core.server.transformers.JsonToRequestMessageTransformer"
+                        name="registrationCredentialEntryRequestTransformer">
+        <spring:property name="payloadType" value="RegistrationCredentialsRequest"/>
+    </custom-transformer>
+
+    <!-- Mobile Registration ID entry request transformer -->
+    <custom-transformer class="xyz.homapay.hampay.core.server.transformers.JsonToRequestMessageTransformer"
+                        name="mobileRegistrationIdEntryRequestTransformer">
+        <spring:property name="payloadType" value="MobileRegistrationIdEntryRequest"/>
+    </custom-transformer>
+
+    <!-- Search Business request transformer -->
+    <custom-transformer class="xyz.homapay.hampay.core.server.transformers.JsonToRequestMessageTransformer"
+                        name="searchBusinessRequestTransformer">
+        <spring:property name="payloadType" value="BusinessSearchRequest"/>
+    </custom-transformer>
+
+    <json:object-to-json-transformer name="IdpUserDTOToJson"
+                                     sourceClass="xyz.homapay.hampay.core.common.data.dto.IdpUserDTO"/>
+
+    <!-- Contact us request transformer -->
+    <custom-transformer class="xyz.homapay.hampay.core.server.transformers.JsonToRequestMessageTransformer"
+                        name="contactUsRequestTransformer">
+        <spring:property name="payloadType" value="ContactUsRequest"/>
+    </custom-transformer>
+
+    <!-- Event List request transformer-->
+    <custom-transformer class="xyz.homapay.hampay.core.server.transformers.JsonToRequestMessageTransformer"
+                        name="eventListRequestTransformer">
+        <spring:property name="payloadType" value="EventListRequest"/>
+    </custom-transformer>
+
+    <!-- Unlink User request transformer-->
+    <custom-transformer class="xyz.homapay.hampay.core.server.transformers.JsonToRequestMessageTransformer"
+                        name="unlinkUserRequestTransformer">
+        <spring:property name="payloadType" value="UnlinkUserRequest"/>
+    </custom-transformer>
+
+    <!-- Business Search List -->
+    <custom-transformer class="xyz.homapay.hampay.core.server.transformers.JsonToRequestMessageTransformer"
+                        name="JsonToRequestMessage_BusinessListRequest">
+        <spring:property name="payloadType" value="BusinessListRequest"/>
+    </custom-transformer>
+
+    <custom-transformer class="xyz.homapay.hampay.core.server.transformers.JsonToRequestMessageTransformer"
+                        name="JsonToRequestMessage_BusinessPaymentConfirmRequest">
+        <spring:property name="payloadType" value="BusinessPaymentConfirmRequest"/>
+    </custom-transformer>
+
+    <custom-transformer class="xyz.homapay.hampay.core.server.transformers.JsonToRequestMessageTransformer"
+                        name="JsonToRequestMessage_BusinessPaymentRequest">
+        <spring:property name="payloadType" value="BusinessPaymentRequest"/>
+    </custom-transformer>
+
+    <custom-transformer class="xyz.homapay.hampay.core.server.transformers.JsonToRequestMessageTransformer"
+                        name="JsonToRequestMessage_ContactsHampayEnabledRequest">
+        <spring:property name="payloadType" value="ContactsHampayEnabledRequest"/>
+    </custom-transformer>
+
+    <custom-transformer class="xyz.homapay.hampay.core.server.transformers.JsonToRequestMessageTransformer"
+                        name="JsonToRequestMessage_IndividualPaymentConfirmRequest">
+        <spring:property name="payloadType" value="IndividualPaymentConfirmRequest"/>
+    </custom-transformer>
+
+    <custom-transformer class="xyz.homapay.hampay.core.server.transformers.JsonToRequestMessageTransformer"
+                        name="JsonToRequestMessage_IndividualPaymentRequest">
+        <spring:property name="payloadType" value="IndividualPaymentRequest"/>
+    </custom-transformer>
+
+    <custom-transformer class="xyz.homapay.hampay.core.server.transformers.JsonToRequestMessageTransformer"
+                        name="JsonToRequestMessage_TransactionListRequest">
+        <spring:property name="payloadType" value="TransactionListRequest"/>
+    </custom-transformer>
+
+    <custom-transformer class="xyz.homapay.hampay.core.server.transformers.JsonToRequestMessageTransformer"
+                        name="JsonToRequestMessage_ChangePassCodeRequest">
+        <spring:property name="payloadType" value="ChangePassCodeRequest"/>
+    </custom-transformer>
+
+    <custom-transformer class="xyz.homapay.hampay.core.server.transformers.JsonToRequestMessageTransformer"
+                        name="JsonToRequestMessage_ChangeMemorableWordRequest">
+        <spring:property name="payloadType" value="ChangeMemorableWordRequest"/>
+    </custom-transformer>
+
+    <custom-transformer class="xyz.homapay.hampay.core.server.transformers.JsonToRequestMessageTransformer"
+                        name="JsonToRequestMessage_RegistrationConfirmUserDataRequest">
+        <spring:property name="payloadType" value="RegistrationConfirmUserDataRequest"/>
+    </custom-transformer>
+
+    <custom-transformer class="xyz.homapay.hampay.core.server.transformers.JsonToRequestMessageTransformer"
+                        name="JsonToRequestMessage_RegistrationFetchUserDataRequest">
+        <spring:property name="payloadType" value="RegistrationFetchUserDataRequest"/>
+    </custom-transformer>
+
+    <custom-transformer class="xyz.homapay.hampay.core.server.transformers.JsonToRequestMessageTransformer"
+                        name="JsonToRequestMessage_AccountProfileRequest">
+        <spring:property name="payloadType" value="AccountProfileRequest"/>
+    </custom-transformer>
+
+    <custom-transformer class="xyz.homapay.hampay.core.server.transformers.JsonToResponseMessageTransformer"
+                        name="JsonToResponseMessage_AccountProfileResponse">
+        <spring:property name="payloadType" value="AccountProfileResponse"/>
+    </custom-transformer>
+
+    <custom-transformer class="xyz.homapay.hampay.core.server.transformers.JsonToResponseMessageTransformer"
+                        name="JsonToResponseMessage_VerifyTransactionResponse">
+        <spring:property name="payloadType" value="VerifyTransactionResponse"/>
+    </custom-transformer>
+
+    <custom-transformer class="xyz.homapay.hampay.core.server.transformers.JsonToResponseMessageTransformer"
+                        name="JsonToResponseMessage_RegistrationCredentialsResponse">
+        <spring:property name="payloadType" value="RegistrationCredentialsResponse"/>
+    </custom-transformer>
+
+    <!-- verify account request transformer -->
+    <custom-transformer class="xyz.homapay.hampay.core.server.transformers.JsonToRequestMessageTransformer"
+                        name="verifyAccountRequestTransformer">
+        <spring:property name="payloadType" value="VerifyAccountRequest"/>
+    </custom-transformer>
+
+    <!-- registration verify account request transformer -->
+    <custom-transformer class="xyz.homapay.hampay.core.server.transformers.JsonToRequestMessageTransformer"
+                        name="registrationVerifyAccountRequestTransformer">
+        <spring:property name="payloadType" value="RegistrationVerifyAccountRequest"/>
+    </custom-transformer>
+
+    <!-- registration verify Transfer Money request transformer -->
+    <custom-transformer class="xyz.homapay.hampay.core.server.transformers.JsonToRequestMessageTransformer"
+                        name="registrationVerifyXferRequestTransformer">
+        <spring:property name="payloadType" value="RegistrationVerifyTransferMoneyRequest"/>
+    </custom-transformer>
+
+    <!-- verify Transfer Money request transformer -->
+    <custom-transformer class="xyz.homapay.hampay.core.server.transformers.JsonToRequestMessageTransformer"
+                        name="verifyXferRequestTransformer">
+        <spring:property name="payloadType" value="VerifyTransferMoneyRequest"/>
+    </custom-transformer>
+
+    <custom-transformer class="xyz.homapay.hampay.core.server.transformers.JsonToRequestMessageTransformer"
+                        name="tacRequestTransformer">
+        <spring:property name="payloadType" value="TACRequest"/>
+    </custom-transformer>
+
+    <custom-transformer class="xyz.homapay.hampay.core.server.transformers.JsonToRequestMessageTransformer"
+                        name="tacAcceptRequestTransformer">
+        <spring:property name="payloadType" value="TACAcceptRequest"/>
+    </custom-transformer>
+
+    <custom-transformer class="xyz.homapay.hampay.core.server.transformers.JsonToRequestMessageTransformer"
+                        name="getUserIdTokenRequestTransformer">
+        <spring:property name="payloadType" value="GetUserIdTokenRequest"/>
+    </custom-transformer>
+
+    <custom-transformer class="xyz.homapay.hampay.core.server.transformers.JsonToRequestMessageTransformer"
+                        name="uploadImageRequestTransformer">
+        <spring:property name="payloadType" value="UploadImageRequest"/>
+    </custom-transformer>
+
+    <custom-transformer class="xyz.homapay.hampay.core.server.transformers.JsonToRequestMessageTransformer"
+                        name="changeEmailRequestTransformer">
+        <spring:property name="payloadType" value="ChangeEmailRequest"/>
+    </custom-transformer>
+
+    <custom-transformer class="xyz.homapay.hampay.core.server.transformers.JsonToRequestMessageTransformer"
+                        name="illegalAppRequestTransformer">
+        <spring:property name="payloadType" value="IllegalAppListRequest"/>
+    </custom-transformer>
+
+    <!-- User profile request transformer -->
+    <custom-transformer class="xyz.homapay.hampay.core.server.transformers.JsonToRequestMessageTransformer"
+                        name="userProfileRequestTransformer">
+        <spring:property name="payloadType" value="UserProfileRequest"/>
+    </custom-transformer>
+
+    <spring:bean id="JsonToResponseMessage_PaymentResponse"
+                 class="xyz.homapay.hampay.core.server.transformers.JsonToResponseMessageTransformer">
+        <spring:property name="payloadType" value="PaymentResponse"/>
+    </spring:bean>
+
+    <!-- Exception Transformers-->
+
+    <spring:bean id="contactUsExceptionToResponseMessage"
+                 class="xyz.homapay.hampay.core.server.transformers.exception.ContactUsExceptionToResponseTransformer"/>
+
+    <spring:bean id="bankListExceptionToResponseMessage"
+                 class="xyz.homapay.hampay.core.server.transformers.exception.BankListExceptionToResponseTransformer"/>
+
+    <spring:bean id="regEntryExceptionToResponseMessage"
+                 class="xyz.homapay.hampay.core.server.transformers.exception.RegEntryExceptionToResponseTransformer"/>
+
+    <spring:bean id="regSMSTokenExceptionToResponseMessage"
+                 class="xyz.homapay.hampay.core.server.transformers.exception.RegSMSTokenExceptionToResponseTransformer"/>
+
+    <spring:bean id="regVerifyMobileExceptionToResponseMessage"
+                 class="xyz.homapay.hampay.core.server.transformers.exception.RegVerifyMobileExceptionToResponseTransformer"/>
+
+    <spring:bean id="regFetchDataExceptionToResponseMessage"
+                 class="xyz.homapay.hampay.core.server.transformers.exception.RegFetchDataExceptionToResponseTransformer"/>
+
+    <spring:bean id="regConfirmDataExceptionToResponseMessage"
+                 class="xyz.homapay.hampay.core.server.transformers.exception.RegConfirmDataExceptionToResponseTransformer"/>
+
+    <spring:bean id="regVerifyAcctExceptionToResponseMessage"
+                 class="xyz.homapay.hampay.core.server.transformers.exception.RegVerifyAcctExceptionToResponseTransformer"/>
+
+    <spring:bean id="regVerifyXferExceptionToResponseMessage"
+                 class="xyz.homapay.hampay.core.server.transformers.exception.RegVerifyXferExceptionToResponseTransformer"/>
+
+    <spring:bean id="regCredentialExceptionToResponseMessage"
+                 class="xyz.homapay.hampay.core.server.transformers.exception.RegCredentialEntryExceptionToResponseTransformer"/>
+
+    <spring:bean id="mobileRegistrationIdEntryExceptionToResponseMessage"
+                 class="xyz.homapay.hampay.core.server.transformers.exception.mobileRegistrationIdEntryExceptionToResponseTransformer"/>
+
+    <spring:bean id="hampayEnabledContactExceptionToResponseMessage"
+                 class="xyz.homapay.hampay.core.server.transformers.exception.HpEnabledContactExceptionToResponseTransformer"/>
+
+    <spring:bean id="bizPayConfirmExceptionToResponseMessage"
+                 class="xyz.homapay.hampay.core.server.transformers.exception.BizPayConfirmExceptionToResponseTransformer"/>
+
+    <spring:bean id="bizPaymentExceptionToResponseMessage"
+                 class="xyz.homapay.hampay.core.server.transformers.exception.BizPaymentExceptionToResponseTransformer"/>
+
+    <spring:bean id="individualPaymentConfirmExceptionToResponseMessage"
+                 class="xyz.homapay.hampay.core.server.transformers.exception.IndividualPayConfirmExceptionToResponseTransformer"/>
+
+    <spring:bean id="individualPaymentExceptionToResponseMessage"
+                 class="xyz.homapay.hampay.core.server.transformers.exception.IndividualPaymentExceptionToResponseTransformer"/>
+
+    <spring:bean id="getCustomerInfoExceptionToResponseMessage"
+                 class="xyz.homapay.hampay.core.server.transformers.exception.GetCustomerInfoExceptionToResponseTransformer"/>
+
+    <spring:bean id="changePassCodeExceptionToResponseMessage"
+                 class="xyz.homapay.hampay.core.server.transformers.exception.ChangePassCodeExceptionToResponseTransformer"/>
+
+    <spring:bean id="changeMemWordExceptionToResponseMessage"
+                 class="xyz.homapay.hampay.core.server.transformers.exception.ChangeMemWordExceptionToResponseTransformer"/>
+
+    <spring:bean id="tnxListExceptionToResponseMessage"
+                 class="xyz.homapay.hampay.core.server.transformers.exception.TnxListExceptionToResponseTransformer"/>
+
+    <spring:bean id="bizListExceptionToResponseMessage"
+                 class="xyz.homapay.hampay.core.server.transformers.exception.BizListExceptionToResponseTransformer"/>
+
+    <spring:bean id="bizInfoExceptionToResponseMessage"
+                 class="xyz.homapay.hampay.core.server.transformers.exception.BizInfoExceptionToResponseTransformer"/>
+
+    <spring:bean id="bizSearchExceptionToResponseMessage"
+                 class="xyz.homapay.hampay.core.server.transformers.exception.BizSearchExceptionToResponseTransformer"/>
+
+    <spring:bean id="verifyAccountExceptionToResponseMessage"
+                 class="xyz.homapay.hampay.core.server.transformers.exception.VerifyAccountExceptionToResponseTransformer"/>
+
+    <spring:bean id="verifyXferExceptionToResponseMessage"
+                 class="xyz.homapay.hampay.core.server.transformers.exception.VerifyXferExceptionToResponseTransformer"/>
+
+    <spring:bean id="tacExceptionToResponseMessage"
+                 class="xyz.homapay.hampay.core.server.transformers.exception.TacExceptionToResponseTransformer"/>
+
+    <spring:bean id="tacAcceptExceptionToResponseMessage"
+                 class="xyz.homapay.hampay.core.server.transformers.exception.TacAcceptExceptionToResponseTransformer"/>
+
+    <spring:bean id="userProfileExceptionToResponseMessage"
+                 class="xyz.homapay.hampay.core.server.transformers.exception.UserProfileExceptionToResponseTransformer"/>
+
+    <spring:bean id="restRouterExceptionToResponseMessage"
+                 class="xyz.homapay.hampay.core.server.transformers.exception.RestRouterExceptionToResponseTransformer"/>
+
+    <spring:bean id="eventListExceptionToResponseMessage"
+                 class="xyz.homapay.hampay.core.server.transformers.exception.EventListExceptionToResponseTransformer"/>
+
+    <spring:bean id="unlinkUserExceptionToResponseMessage"
+                 class="xyz.homapay.hampay.core.server.transformers.exception.UnlinkUserExceptionToResponseTransformer"/>
+
+    <spring:bean id="getUserIdTokenExceptionToResponseMessage"
+                 class="xyz.homapay.hampay.core.server.transformers.exception.GetUserIdTokenExceptionToResponseTransformer"/>
+
+    <spring:bean id="uploadImageExceptionToResponseMessage"
+                 class="xyz.homapay.hampay.core.server.transformers.exception.UploadImageExceptionToResponseTransformer"/>
+
+    <spring:bean id="changeEmailExceptionToResponseMessage"
+                 class="xyz.homapay.hampay.core.server.transformers.exception.ChangeEmailExceptionToResponseTransformer"/>
+
+    <spring:bean id="illegalAppListExceptionToResponseMessage"
+                 class="xyz.homapay.hampay.core.server.transformers.exception.IllegalAppListExceptionToResponseTransformer"/>
+
+
+</mule>

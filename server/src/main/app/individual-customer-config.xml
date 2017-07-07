@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns:amqp="http://www.mulesoft.org/schema/mule/amqp"
+      xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/3.5/mule.xsd
+      http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/3.5/mule-http.xsd
+      http://www.mulesoft.org/schema/mule/amqp http://www.mulesoft.org/schema/mule/amqp/3.3/mule-amqp.xsd">
+
+
+    <flow name="GetIndividualCustomerInfoFlow">
+        <amqp:inbound-endpoint queueName="${queue.userCustomerInfoRequest}" exchange-pattern="one-way"
+                               connector-ref="amqpRabbitMQConnector"/>
+        <set-variable variableName="queueName" value="${queue.userCustomerInfoResponse}"/>
+        <transformer ref="JsonToRequestMessage_IndividualPaymentConfirmRequest"/>
+        <set-variable variableName="requestPayload" value="#[payload]"/>
+        <flow-ref name="RetrieveUserInfo"/>
+
+        <choice>
+            <when expression="#[flowVars.authorized]">
+                <enricher target="#[variable:customerResponse]">
+                    <invoke object-ref="individualCustomerService" method="getIndividualCustomerResponseByCellNumber"
+                            methodArguments="#[payload.service.cellNumber]"/>
+                </enricher>
+                <enricher target="#[payload]">
+                    <invoke object-ref="individualCustomerResponseProvider" method="createIndividualPaymentConfirm"
+                            methodArguments="#[flowVars.customerResponse],#[payload.service]"/>
+                </enricher>
+            </when>
+            <otherwise>
+                <enricher target="#[payload]">
+                    <invoke object-ref="individualCustomerResponseProvider" method="createAuthenticationFailureResponse"
+                            methodArguments="#[payload.service.requestUUID]"/>
+                </enricher>
+            </otherwise>
+        </choice>
+        <transformer ref="ResponseMessageToJson"/>
+        <amqp:outbound-endpoint queueName="${queue.userCustomerInfoResponse}" exchange-pattern="one-way"
+                                connector-ref="amqpRabbitMQConnector"/>
+        <exception-strategy ref="GetCustomerInfoException"/>
+    </flow>
+
+</mule>

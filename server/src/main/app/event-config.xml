@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns:amqp="http://www.mulesoft.org/schema/mule/amqp"
+      xsi:schemaLocation="
+        http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/3.5/mule.xsd
+        http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/3.5/mule-http.xsd
+        http://www.mulesoft.org/schema/mule/amqp http://www.mulesoft.org/schema/mule/amqp/3.3/mule-amqp.xsd">
+
+    <flow name="EventListFlow">
+        <amqp:inbound-endpoint connector-ref="amqpRabbitMQConnector" queueName="${queue.eventListRequest}"
+                               exchange-pattern="one-way"/>
+        <byte-array-to-string-transformer/>
+        <transformer ref="eventListRequestTransformer"/>
+        <set-variable variableName="requestPayload" value="#[payload]"/>
+
+        <flow-ref name="RetrieveUserInfo"/>
+
+        <choice>
+            <when expression="#[flowVars.authorized]">
+                <invoke object-ref="eventResponseProvider" method="createEventListResponse"
+                        methodArguments="#[payload.service.requestUUID]"/>
+            </when>
+            <otherwise>
+                <invoke object-ref="eventResponseProvider" method="createEventListAuthenticationFailureResponse"
+                        methodArguments="#[payload.service.requestUUID]"/>
+            </otherwise>
+        </choice>
+        <transformer ref="ResponseMessageToJson"/>
+        <amqp:outbound-endpoint connector-ref="amqpRabbitMQConnector" exchangeName="${exchange.eventListResponse}"
+                                exchangeType="topic" exchangeDurable="true" routingKey="${core.routing.key}"/>
+        <exception-strategy ref="EventListException"/>
+    </flow>
+
+</mule>

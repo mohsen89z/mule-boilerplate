@@ -1,0 +1,503 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns:amqp="http://www.mulesoft.org/schema/mule/amqp"
+      xmlns:rest-router="http://www.mulesoft.org/schema/mule/rest-router"
+      xmlns:tcp="http://www.mulesoft.org/schema/mule/tcp"
+      xsi:schemaLocation="
+      http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/3.5/mule.xsd
+      http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/3.5/mule-http.xsd
+      http://www.mulesoft.org/schema/mule/amqp http://www.mulesoft.org/schema/mule/amqp/3.3/mule-amqp.xsd
+      http://www.mulesoft.org/schema/mule/tcp http://www.mulesoft.org/schema/mule/tcp/current/mule-tcp.xsd
+      http://www.mulesoft.org/schema/mule/rest-router http://www.mulesoft.org/schema/mule/rest-router/current/mule-rest-router.xsd">
+
+    <rest-router:config/>
+
+    <tcp:connector name="test" validateConnections="false">
+        <tcp:length-protocol payloadOnly="true" maxMessageLength="1024" rethrowExceptionOnRead="true"/>
+    </tcp:connector>
+
+    <flow name="REST" doc:name="REST Flow">
+
+        <http:inbound-endpoint exchange-pattern="request-response"
+                               host="0.0.0.0" port="9090"
+                               doc:name="REST endpoint"/>
+        <flow-ref name="CopyHeaders"/>
+
+        <!-- Contact Us Flow -->
+        <rest-router:router templateUri="/hampay/contactus">
+            <rest-router:post>
+                <request-reply>
+                    <amqp:outbound-endpoint connector-ref="amqpRabbitMQConnector"
+                                            exchangeName="${exchange.contactUsRequest}"
+                                            exchangeType="topic" exchangeDurable="true"
+                                            routingKey="${core.routing.key}"/>
+                    <amqp:inbound-endpoint queueName="${queue.contactusResponse}" exchange-pattern="one-way"
+                                           connector-ref="amqpRabbitMQConnector"/>
+                </request-reply>
+            </rest-router:post>
+        </rest-router:router>
+
+        <!-- Bank List Flow -->
+        <rest-router:router templateUri="/hampay/banks">
+            <rest-router:post>
+                <request-reply>
+                    <amqp:outbound-endpoint connector-ref="amqpRabbitMQConnector"
+                                            exchangeName="${exchange.bankListRequest}"
+                                            exchangeType="topic" exchangeDurable="true"
+                                            routingKey="${core.routing.key}"/>
+                    <amqp:inbound-endpoint queueName="${queue.bankListResponse}" exchange-pattern="one-way"
+                                           connector-ref="amqpRabbitMQConnector"/>
+                </request-reply>
+            </rest-router:post>
+        </rest-router:router>
+
+        <!-- Registration Entry Flow -->
+        <rest-router:router templateUri="/hampay/users/reg-entry">
+            <rest-router:post>
+                <request-reply>
+                    <amqp:outbound-endpoint connector-ref="amqpRabbitMQConnector"
+                                            exchangeName="${exchange.regEntryRequest}"
+                                            exchangeType="topic" exchangeDurable="true"
+                                            routingKey="${core.routing.key}"/>
+                    <amqp:inbound-endpoint queueName="${queue.registrationEntryResponse}" exchange-pattern="one-way"
+                                           connector-ref="amqpRabbitMQConnector"/>
+                </request-reply>
+            </rest-router:post>
+        </rest-router:router>
+
+        <!-- Registration Send Sms Token Flow -->
+        <rest-router:router templateUri="/hampay/users/reg-sms-token">
+            <rest-router:post>
+                <request-reply>
+                    <amqp:outbound-endpoint connector-ref="amqpRabbitMQConnector"
+                                            exchangeName="${exchange.regSMSTokenRequest}"
+                                            exchangeType="topic" exchangeDurable="true"
+                                            routingKey="${core.routing.key}"/>
+                    <amqp:inbound-endpoint queueName="${queue.registrationSendSmsTokenResponse}"
+                                           exchange-pattern="one-way"
+                                           connector-ref="amqpRabbitMQConnector"/>
+                </request-reply>
+            </rest-router:post>
+        </rest-router:router>
+
+        <!-- Registration Verify Mobile Flow -->
+        <rest-router:router templateUri="/hampay/users/reg-verify-mobile">
+            <rest-router:post>
+                <request-reply>
+                    <amqp:outbound-endpoint connector-ref="amqpRabbitMQConnector"
+                                            exchangeName="${exchange.regVerifyMobileRequest}"
+                                            exchangeType="topic" exchangeDurable="true"
+                                            routingKey="${core.routing.key}"/>
+                    <amqp:inbound-endpoint queueName="${queue.registrationVerifyMobileResponse}"
+                                           exchange-pattern="one-way"
+                                           connector-ref="amqpRabbitMQConnector"/>
+                </request-reply>
+            </rest-router:post>
+        </rest-router:router>
+
+
+        <rest-router:router templateUri="/hampay/users/reg-fetch-user-data">
+            <rest-router:post>
+                <request-reply>
+                    <amqp:outbound-endpoint connector-ref="amqpRabbitMQConnector"
+                                            exchangeName="${exchange.regFetchDataRequest}"
+                                            exchangeType="topic" exchangeDurable="true"
+                                            routingKey="${core.routing.key}"/>
+                    <amqp:inbound-endpoint queueName="${queue.regFetchUserDataResponse}" exchange-pattern="one-way"
+                                           connector-ref="amqpRabbitMQConnector"/>
+                </request-reply>
+            </rest-router:post>
+        </rest-router:router>
+        <rest-router:router templateUri="/hampay/users/reg-confirm-user-data">
+            <rest-router:post>
+                <request-reply>
+                    <amqp:outbound-endpoint connector-ref="amqpRabbitMQConnector"
+                                            exchangeName="${exchange.regConfirmDataRequest}"
+                                            exchangeType="topic" exchangeDurable="true"
+                                            routingKey="${core.routing.key}"/>
+                    <amqp:inbound-endpoint queueName="${queue.regConfirmUserDataResponse}" exchange-pattern="one-way"
+                                           connector-ref="amqpRabbitMQConnector"/>
+                </request-reply>
+            </rest-router:post>
+        </rest-router:router>
+
+
+        <!-- Registration Verify Account-->
+        <rest-router:router templateUri="/hampay/customers/reg-verify-account">
+            <rest-router:post>
+                <request-reply>
+                    <amqp:outbound-endpoint connector-ref="amqpRabbitMQConnector"
+                                            exchangeName="${exchange.regVerifyAcctRequest}"
+                                            exchangeType="topic" exchangeDurable="true"
+                                            routingKey="${core.routing.key}"/>
+                    <amqp:inbound-endpoint queueName="${queue.regVerifyAccountResponse}" exchange-pattern="one-way"
+                                           connector-ref="amqpRabbitMQConnector"/>
+                </request-reply>
+            </rest-router:post>
+
+        </rest-router:router>
+
+        <!-- Registration Verify Transfer Money-->
+        <rest-router:router templateUri="/hampay/customers/reg-verify-xfer">
+            <rest-router:post>
+                <request-reply>
+                    <amqp:outbound-endpoint connector-ref="amqpRabbitMQConnector"
+                                            exchangeName="${exchange.regVerifyXferRequest}"
+                                            exchangeType="topic" exchangeDurable="true"
+                                            routingKey="${core.routing.key}"/>
+                    <amqp:inbound-endpoint queueName="${queue.regVerifyXferResponse}" exchange-pattern="one-way"
+                                           connector-ref="amqpRabbitMQConnector"/>
+                </request-reply>
+            </rest-router:post>
+        </rest-router:router>
+
+        <rest-router:router templateUri="/hampay/users/reg-credential-entry">
+            <rest-router:post>
+                <request-reply>
+                    <amqp:outbound-endpoint connector-ref="amqpRabbitMQConnector"
+                                            exchangeName="${exchange.regCredentialRequest}"
+                                            exchangeType="topic" exchangeDurable="true"
+                                            routingKey="${core.routing.key}"/>
+                    <amqp:inbound-endpoint queueName="${queue.registrationCredentialEntryResponse}"
+                                           exchange-pattern="one-way"
+                                           connector-ref="amqpRabbitMQConnector"/>
+                </request-reply>
+            </rest-router:post>
+        </rest-router:router>
+
+        <rest-router:router templateUri="/hampay/users/mobile-reg-id-entry">
+            <rest-router:post>
+                <request-reply>
+                    <amqp:outbound-endpoint connector-ref="amqpRabbitMQConnector"
+                                            exchangeName="${exchange.mobileRegEntryRequest}"
+                                            exchangeType="topic" exchangeDurable="true"
+                                            routingKey="${core.routing.key}"/>
+                    <amqp:inbound-endpoint queueName="${queue.mobileRegistrationIdResponse}"
+                                           exchange-pattern="one-way"
+                                           connector-ref="amqpRabbitMQConnector"/>
+                </request-reply>
+            </rest-router:post>
+        </rest-router:router>
+
+        <rest-router:router templateUri="/hampay/customer/contacts/hp-enabled">
+            <rest-router:post>
+                <request-reply>
+                    <amqp:outbound-endpoint connector-ref="amqpRabbitMQConnector"
+                                            exchangeName="${exchange.hpEnabledContactsRequest}"
+                                            exchangeType="topic" exchangeDurable="true"
+                                            routingKey="${core.routing.key}"/>
+                    <amqp:inbound-endpoint queueName="${queue.contactHampayEnabledResponse}" exchange-pattern="one-way"
+                                           connector-ref="amqpRabbitMQConnector"/>
+                </request-reply>
+            </rest-router:post>
+        </rest-router:router>
+
+        <rest-router:router templateUri="/hampay/businesses/business-payment-confirm">
+            <rest-router:post>
+                <request-reply>
+                    <amqp:outbound-endpoint connector-ref="amqpRabbitMQConnector"
+                                            exchangeName="${exchange.bizPaymentConfirmRequest}"
+                                            exchangeType="topic" exchangeDurable="true"
+                                            routingKey="${core.routing.key}"/>
+                    <amqp:inbound-endpoint queueName="${queue.businessPaymentConfirmResponse}"
+                                           exchange-pattern="one-way"
+                                           connector-ref="amqpRabbitMQConnector"/>
+                </request-reply>
+            </rest-router:post>
+        </rest-router:router>
+
+        <rest-router:router templateUri="/hampay/customers/business-payment">
+            <rest-router:post>
+                <request-reply>
+                    <amqp:outbound-endpoint connector-ref="amqpRabbitMQConnector"
+                                            exchangeName="${exchange.bizPaymentRequest}"
+                                            exchangeType="topic" exchangeDurable="true"
+                                            routingKey="${core.routing.key}"/>
+                    <amqp:inbound-endpoint queueName="${queue.businessPaymentResponse}" exchange-pattern="one-way"
+                                           connector-ref="amqpRabbitMQConnector"/>
+                </request-reply>
+            </rest-router:post>
+        </rest-router:router>
+
+        <rest-router:router templateUri="/hampay/customers/individual-payment-confirm">
+            <rest-router:post>
+                <request-reply>
+                    <amqp:outbound-endpoint connector-ref="amqpRabbitMQConnector"
+                                            exchangeName="${exchange.individualPayConfirmRequest}"
+                                            exchangeType="topic" exchangeDurable="true"
+                                            routingKey="${core.routing.key}"/>
+                    <amqp:inbound-endpoint queueName="${queue.paymentConfirmResponse}" exchange-pattern="one-way"
+                                           connector-ref="amqpRabbitMQConnector"/>
+                </request-reply>
+            </rest-router:post>
+        </rest-router:router>
+
+        <rest-router:router templateUri="/hampay/customers/individual-payment">
+            <rest-router:post>
+                <request-reply>
+                    <amqp:outbound-endpoint connector-ref="amqpRabbitMQConnector"
+                                            exchangeName="${exchange.IndividualPayRequest}"
+                                            exchangeType="topic" exchangeDurable="true"
+                                            routingKey="${core.routing.key}"/>
+                    <amqp:inbound-endpoint queueName="${queue.individualPaymentResponse}" exchange-pattern="one-way"
+                                           connector-ref="amqpRabbitMQConnector"/>
+                </request-reply>
+            </rest-router:post>
+        </rest-router:router>
+
+        <rest-router:router templateUri="/hampay/users/passcode">
+            <rest-router:put>
+                <request-reply>
+                    <amqp:outbound-endpoint connector-ref="amqpRabbitMQConnector"
+                                            exchangeName="${exchange.changePassRequest}"
+                                            exchangeType="topic" exchangeDurable="true"
+                                            routingKey="${core.routing.key}"/>
+                    <amqp:inbound-endpoint queueName="${queue.changePasscodeResponse}" exchange-pattern="one-way"
+                                           connector-ref="amqpRabbitMQConnector"/>
+                </request-reply>
+            </rest-router:put>
+        </rest-router:router>
+
+        <rest-router:router templateUri="/hampay/users/memorable-word">
+            <rest-router:put>
+                <request-reply>
+                    <amqp:outbound-endpoint connector-ref="amqpRabbitMQConnector"
+                                            exchangeName="${exchange.changeMemWordRequest}"
+                                            exchangeType="topic" exchangeDurable="true"
+                                            routingKey="${core.routing.key}"/>
+                    <amqp:inbound-endpoint queueName="${queue.changeMemorableWordResponse}" exchange-pattern="one-way"
+                                           connector-ref="amqpRabbitMQConnector"/>
+                </request-reply>
+            </rest-router:put>
+        </rest-router:router>
+
+
+        <rest-router:router templateUri="/hampay/transactions">
+            <rest-router:post>
+                <request-reply>
+                    <amqp:outbound-endpoint connector-ref="amqpRabbitMQConnector"
+                                            exchangeName="${exchange.tnxListRequest}"
+                                            exchangeType="topic" exchangeDurable="true"
+                                            routingKey="${core.routing.key}"/>
+                    <amqp:inbound-endpoint queueName="${queue.transactionListResponse}" exchange-pattern="one-way"
+                                           connector-ref="amqpRabbitMQConnector"/>
+                </request-reply>
+            </rest-router:post>
+        </rest-router:router>
+
+        <rest-router:router templateUri="/hampay/businesses">
+            <rest-router:post>
+                <request-reply>
+                    <amqp:outbound-endpoint connector-ref="amqpRabbitMQConnector"
+                                            exchangeName="${exchange.businessListRequest}"
+                                            exchangeType="topic" exchangeDurable="true"
+                                            routingKey="${core.routing.key}"/>
+                    <amqp:inbound-endpoint queueName="${queue.businessListResponse}" exchange-pattern="one-way"
+                                           connector-ref="amqpRabbitMQConnector"/>
+                </request-reply>
+            </rest-router:post>
+        </rest-router:router>
+
+        <rest-router:router templateUri="/hampay/businesses/{bizcode}">
+            <rest-router:post>
+                <request-reply>
+                    <amqp:outbound-endpoint connector-ref="amqpRabbitMQConnector"
+                                            exchangeName="${exchange.bizInfoRequest}"
+                                            exchangeType="topic" exchangeDurable="true"
+                                            routingKey="${core.routing.key}"/>
+                    <amqp:inbound-endpoint queueName="${queue.businessInfoResponse}" exchange-pattern="one-way"
+                                           connector-ref="amqpRabbitMQConnector"/>
+                </request-reply>
+            </rest-router:post>
+        </rest-router:router>
+
+        <rest-router:router templateUri="/hampay/search">
+            <rest-router:post>
+                <request-reply>
+                    <amqp:outbound-endpoint connector-ref="amqpRabbitMQConnector"
+                                            exchangeName="${exchange.bizSearchRequest}"
+                                            exchangeType="topic" exchangeDurable="true"
+                                            routingKey="${core.routing.key}"/>
+                    <amqp:inbound-endpoint queueName="${queue.businessSearchResponse}" exchange-pattern="one-way"
+                                           connector-ref="amqpRabbitMQConnector"/>
+                </request-reply>
+            </rest-router:post>
+        </rest-router:router>
+
+        <rest-router:router templateUri="/hampay/customers/verify-account">
+            <rest-router:post>
+                <request-reply>
+                    <amqp:outbound-endpoint connector-ref="amqpRabbitMQConnector"
+                                            exchangeName="${exchange.verifyAcctRequest}"
+                                            exchangeType="topic" exchangeDurable="true"
+                                            routingKey="${core.routing.key}"/>
+                    <amqp:inbound-endpoint queueName="${queue.verifyAccountResponse}" exchange-pattern="one-way"
+                                           connector-ref="amqpRabbitMQConnector"/>
+                </request-reply>
+            </rest-router:post>
+        </rest-router:router>
+
+        <rest-router:router templateUri="/hampay/customers/verify-xfer">
+            <rest-router:post>
+                <request-reply>
+                    <amqp:outbound-endpoint connector-ref="amqpRabbitMQConnector"
+                                            exchangeName="${exchange.verifyXferRequest}"
+                                            exchangeType="topic" exchangeDurable="true"
+                                            routingKey="${core.routing.key}"/>
+                    <amqp:inbound-endpoint queueName="${queue.verifyXferResponse}" exchange-pattern="one-way"
+                                           connector-ref="amqpRabbitMQConnector"/>
+                </request-reply>
+            </rest-router:post>
+        </rest-router:router>
+
+        <rest-router:router templateUri="/hampay/users/tac">
+            <rest-router:post>
+                <request-reply>
+                    <amqp:outbound-endpoint connector-ref="amqpRabbitMQConnector" exchangeName="${exchange.tacRequest}"
+                                            exchangeType="topic" exchangeDurable="true"
+                                            routingKey="${core.routing.key}"/>
+                    <amqp:inbound-endpoint queueName="${queue.tacResponse}" exchange-pattern="one-way"
+                                           connector-ref="amqpRabbitMQConnector"/>
+                </request-reply>
+            </rest-router:post>
+        </rest-router:router>
+
+        <rest-router:router templateUri="/hampay/users/tacaccept">
+            <rest-router:post>
+                <request-reply>
+                    <amqp:outbound-endpoint connector-ref="amqpRabbitMQConnector"
+                                            exchangeName="${exchange.tacAcceptRequest}"
+                                            exchangeType="topic" exchangeDurable="true"
+                                            routingKey="${core.routing.key}"/>
+                    <amqp:inbound-endpoint queueName="${queue.tacAcceptResponse}" exchange-pattern="one-way"
+                                           connector-ref="amqpRabbitMQConnector"/>
+                </request-reply>
+            </rest-router:post>
+        </rest-router:router>
+
+        <rest-router:router templateUri="/hampay/users/profile">
+            <rest-router:post>
+                <request-reply>
+                    <amqp:outbound-endpoint connector-ref="amqpRabbitMQConnector"
+                                            exchangeName="${exchange.profileRequest}"
+                                            exchangeType="topic" exchangeDurable="true"
+                                            routingKey="${core.routing.key}"/>
+                    <amqp:inbound-endpoint queueName="${queue.userProfileResponse}" exchange-pattern="one-way"
+                                           connector-ref="amqpRabbitMQConnector"/>
+
+                </request-reply>
+            </rest-router:post>
+
+        </rest-router:router>
+
+        <rest-router:router templateUri="/hampay/events">
+            <rest-router:post>
+                <request-reply>
+                    <amqp:outbound-endpoint connector-ref="amqpRabbitMQConnector"
+                                            exchangeName="${exchange.eventListRequest}"
+                                            exchangeType="topic" exchangeDurable="true"
+                                            routingKey="${core.routing.key}"/>
+                    <amqp:inbound-endpoint queueName="${queue.eventListResponse}" exchange-pattern="one-way"
+                                           connector-ref="amqpRabbitMQConnector"/>
+
+                </request-reply>
+            </rest-router:post>
+
+        </rest-router:router>
+
+        <rest-router:router templateUri="/hampay/users/unlink">
+            <rest-router:post>
+                <request-reply>
+                    <amqp:outbound-endpoint connector-ref="amqpRabbitMQConnector"
+                                            exchangeName="${exchange.unlinkUserRequest}"
+                                            exchangeType="topic" exchangeDurable="true"
+                                            routingKey="${core.routing.key}"/>
+                    <amqp:inbound-endpoint queueName="${queue.unlinkUserResponse}" exchange-pattern="one-way"
+                                           connector-ref="amqpRabbitMQConnector"/>
+
+                </request-reply>
+            </rest-router:post>
+        </rest-router:router>
+
+        <rest-router:router templateUri="/hampay/users/upload-image">
+            <rest-router:post>
+                <request-reply>
+                    <amqp:outbound-endpoint connector-ref="amqpRabbitMQConnector"
+                                            exchangeName="${exchange.uploadImageRequest}"
+                                            exchangeType="topic" exchangeDurable="true"
+                                            routingKey="${core.routing.key}"/>
+                    <amqp:inbound-endpoint queueName="${queue.uploadImageResponse}" exchange-pattern="one-way"
+                                           connector-ref="amqpRabbitMQConnector"/>
+
+                </request-reply>
+            </rest-router:post>
+
+        </rest-router:router>
+
+        <rest-router:router templateUri="/hampay/users/get-user-id-token">
+            <rest-router:post>
+                <request-reply>
+                    <amqp:outbound-endpoint connector-ref="amqpRabbitMQConnector"
+                                            exchangeName="${exchange.getUserIdTokenRequest}"
+                                            exchangeType="topic" exchangeDurable="true"
+                                            routingKey="${core.routing.key}"/>
+                    <amqp:inbound-endpoint queueName="${queue.getUserIdTokenResponse}" exchange-pattern="one-way"
+                                           connector-ref="amqpRabbitMQConnector"/>
+
+                </request-reply>
+            </rest-router:post>
+
+        </rest-router:router>
+
+        <rest-router:router templateUri="/hampay/users/{authToken}/{imageId}">
+            <rest-router:get>
+                <flow-ref name="retrieveImage"/>
+                <http:response-builder contentType="image/jpeg" status="200"/>
+            </rest-router:get>
+        </rest-router:router>
+
+        <rest-router:router templateUri="/hampay/users/change-email">
+            <rest-router:post>
+                <request-reply>
+                    <amqp:outbound-endpoint connector-ref="amqpRabbitMQConnector"
+                                            exchangeName="${exchange.changeEmailRequest}"
+                                            exchangeType="topic" exchangeDurable="true"
+                                            routingKey="${core.routing.key}"/>
+                    <amqp:inbound-endpoint queueName="${queue.changeEmailResponse}" exchange-pattern="one-way"
+                                           connector-ref="amqpRabbitMQConnector"/>
+
+                </request-reply>
+            </rest-router:post>
+        </rest-router:router>
+
+        <rest-router:router templateUri="/hampay/illegal-apps">
+            <rest-router:post>
+                <request-reply>
+                    <amqp:outbound-endpoint connector-ref="amqpRabbitMQConnector"
+                                            exchangeName="${exchange.illegalAppListRequest}"
+                                            exchangeType="topic" exchangeDurable="true"
+                                            routingKey="${core.routing.key}"/>
+                    <amqp:inbound-endpoint queueName="${queue.illegalAppListResponse}" exchange-pattern="one-way"
+                                           connector-ref="amqpRabbitMQConnector"/>
+
+                </request-reply>
+            </rest-router:post>
+
+        </rest-router:router>
+
+        <rest-router:router templateUri="/hampay/users/tac-file">
+            <rest-router:get>
+                <flow-ref name="retrieveTACFile"/>
+                <http:response-builder contentType="text/plain" status="200"/>
+            </rest-router:get>
+        </rest-router:router>
+
+        <exception-strategy ref="RestRouterException"/>
+
+    </flow>
+
+</mule>

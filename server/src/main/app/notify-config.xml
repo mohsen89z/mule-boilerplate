@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns:amqp="http://www.mulesoft.org/schema/mule/amqp"
+      xmlns:https="http://www.mulesoft.org/schema/mule/https"
+      xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/3.5/mule.xsd
+    http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/3.5/mule-http.xsd
+    http://www.mulesoft.org/schema/mule/https http://www.mulesoft.org/schema/mule/https/3.3/mule-https.xsd
+    http://www.mulesoft.org/schema/mule/amqp http://www.mulesoft.org/schema/mule/amqp/3.3/mule-amqp.xsd">
+
+
+    <flow name="createPaymentNotification">
+        <amqp:inbound-endpoint queueName="${queue.notify.payment.response}" exchange-pattern="one-way"
+                               connector-ref="amqpRabbitMQConnector"/>
+        <byte-array-to-string-transformer/>
+        <transformer ref="JsonToResponseMessage_PaymentResponse"/>
+        <invoke object-ref="notificationService" method="createPaymentNotification"
+                methodArguments="#[payload.service]"/>
+        <choice>
+            <when expression="#[payload != '']">
+                <amqp:outbound-endpoint connector-ref="amqpRabbitMQConnector"
+                                        exchangeName="${exchange.notificationRequest}"
+                                        exchangeType="topic" exchangeDurable="true"
+                                        routingKey="${core.routing.key}"/>
+            </when>
+            <otherwise>
+                <logger level="INFO" message="Payment is not notifiable"/>
+            </otherwise>
+        </choice>
+    </flow>
+
+    <flow name="createJointNotification">
+        <amqp:inbound-endpoint queueName="${queue.notify.joint.response}" exchange-pattern="one-way"
+                               connector-ref="amqpRabbitMQConnector"/>
+        <gzip-uncompress-transformer returnClass="java.lang.String"/>
+        <transformer ref="JsonToResponseMessage_RegistrationCredentialsResponse"/>
+        <choice>
+            <when expression="#[payload.service.resultStatus.toString() =='SUCCESS']">
+                <enricher target="#[variable:notifications]">
+                    <invoke object-ref="notificationService" method="createJointNotification"
+                            methodArguments="#[payload.service],${max.joint.notifications}"/>
+                </enricher>
+                <choice>
+                    <when expression="#[!(flowVars.notifications is org.mule.transport.NullPayload)]">
+                        <foreach collection="#[flowVars.notifications]">
+                            <logger level="INFO" message="for each joint notification:#[payload]"/>
+                            <amqp:outbound-endpoint connector-ref="amqpRabbitMQConnector"
+                                                    exchangeName="${exchange.notificationRequest}"
+                                                    exchangeType="topic" exchangeDurable="true"
+                                                    routingKey="${core.routing.key}"/>
+                        </foreach>
+                    </when>
+                    <otherwise>
+                        <logger level="INFO" message="No notification found for joint"/>
+                    </otherwise>
+                </choice>
+            </when>
+            <otherwise>
+                <logger level="INFO" message="Credential response was not eligible to sending notification"/>
+            </otherwise>
+        </choice>
+    </flow>
+
+    <flow name="createAppUpdateNotification">
+        <amqp:inbound-endpoint queueName="${queue.notify.app.update.response}" exchange-pattern="one-way"
+                               connector-ref="amqpRabbitMQConnector"/>
+        <invoke object-ref="notificationService" method="checkIfAppVersionIsNotifiable"/>
+        <choice>
+            <when expression="#[payload == true]">
+                <invoke object-ref="notificationService" method="createAppUpdateNotificationMessages"/>
+            </when>
+            <otherwise>
+                <logger level="INFO" message="There is no application version update"/>
+            </otherwise>
+        </choice>
+    </flow>
+
+    <sub-flow name="sendUpdateNotificationJob">
+        <invoke object-ref="notificationService" method="getAppUpdateNotificationMessageCounts"/>
+        <choice>
+            <when expression="#[payload>0]">
+                <enricher target="#[variable:notifications]">
+                    <invoke object-ref="notificationService" method="getAppUpdateNotificationRecords"
+                            methodArguments="${max.notification.message.per.job}"/>
+                </enricher>
+                <foreach collection="#[flowVars.notifications]">
+                    <set-payload value="#[payload.message]"/>
+                    <amqp:outbound-endpoint connector-ref="amqpRabbitMQConnector"
+                                            exchangeName="${exchange.notificationRequest}"
+                                            exchangeType="topic" exchangeDurable="true"
+                                            routingKey="${core.routing.key}"/>
+                </foreach>
+                <invoke object-ref="notificationService" method="removeNotifiedMessage"
+                        methodArguments="#[flowVars.notifications]"/>
+            </when>
+            <otherwise>
+                <logger level="INFO" message="There is no app update notification"/>
+            </otherwise>
+        </choice>
+    </sub-flow>
+
+    <!--<batch:job name="app-update-notification-batch-job" max-failed-records="-1">-->
+    <!--<batch:threading-profile poolExhaustedAction="WAIT"/>-->
+    <!--<batch:input>-->
+    <!--<poll>-->
+    <!--<fixed-frequency-scheduler frequency="480" startDelay="10" timeUnit="MINUTES"/>-->
+    <!--<invoke object-ref="notificationService" method="getAppUpdateNotificationRecords"-->
+    <!--methodArguments="${max.notification.message.per.job}"/>-->
+    <!--</poll>-->
+    <!--</batch:input>-->
+    <!--<batch:process-records>-->
+    <!--<batch:step name="senNotificationStep">-->
+    <!--<enricher target="#[payload]" source="#[payload.message]">-->
+    <!--<set-payload value="#[payload]"/>-->
+    <!--</enricher>-->
+    <!--<flow-ref name="sendNotification"/>-->
+    <!--</batch:step>-->
+    <!--<batch:step name="failedNotificationStep" accept-policy="ONLY_FAILURES">-->
+    <!--</batch:step>-->
+    <!--</batch:process-records>-->
+    <!--<batch:on-complete>-->
+    <!--<invoke object-ref="notificationService" method="removeSentNotificationMessages"-->
+    <!--methodArguments="${max.notification.message.per.job}"/>-->
+    <!--</batch:on-complete>-->
+    <!--</batch:job>-->
+
+
+    <!--######### SEND NOTIFICATION ##########-->
+    <flow name="sendGoogleNotification">
+        <amqp:inbound-endpoint queueName="${queue.notificationRequest}" exchange-pattern="one-way"
+                               connector-ref="amqpRabbitMQConnector"/>
+        <byte-array-to-string-transformer/>
+        <invoke object-ref="notificationTimeControlService" method="checkNotificationStatus"/>
+
+        <set-variable variableName="notificationPayload" value="#[payload]"/>
+        <logger level="INFO" message="Sending notification to google with message:#[payload]"/>
+
+        <set-property propertyName="Content-Type" value="application/json; charset=utf-8"/>
+        <set-property propertyName="Authorization" value="key=${google.notification.server.key}"/>
+        <https:outbound-endpoint address="https://gcm-http.googleapis.com/gcm/send" method="POST"/>
+
+        <logger level="INFO" message="Received notification from google with message:#[payload]"/>
+
+        <invoke object-ref="notificationTimeControlService" method="resetNotificationWaitTime"/>
+
+        <catch-exception-strategy enableNotifications="true">
+            <invoke object-ref="notificationTimeControlService" method="addNotificationWaitTime"/>
+            <set-payload value="#[flowVars.notificationPayload]"/>
+            <amqp:outbound-endpoint connector-ref="amqpRabbitMQConnector" exchangeName="${exchange.notificationRequest}"
+                                    exchangeType="topic" exchangeDurable="true" routingKey="${core.routing.key}"/>
+        </catch-exception-strategy>
+    </flow>
+
+</mule>

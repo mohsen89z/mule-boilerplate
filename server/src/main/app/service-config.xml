@@ -1,0 +1,178 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns:spring="http://www.springframework.org/schema/beans"
+      xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/3.5/mule.xsd
+      http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/3.5/mule-http.xsd
+      http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.2.xsd">
+
+    <spring:bean id="userDao"
+                 class="xyz.homapay.hampay.core.server.dao.impl.UserDaoImpl"/>
+    <spring:bean id="transactionDao"
+                 class="xyz.homapay.hampay.core.server.dao.impl.TransactionDaoImpl"/>
+    <spring:bean id="deviceDao"
+                 class="xyz.homapay.hampay.core.server.dao.impl.DeviceDaoImpl"/>
+    <spring:bean id="versionDao"
+                 class="xyz.homapay.hampay.core.server.dao.impl.VersionDaoImpl"/>
+    <spring:bean id="notificationDao"
+                 class="xyz.homapay.hampay.core.server.dao.impl.NotificationDaoImpl"/>
+    <spring:bean id="userGroupDao"
+                 class="xyz.homapay.hampay.core.server.dao.impl.UserGroupDaoImpl"/>
+    <spring:bean id="feeChargeDao"
+                 class="xyz.homapay.hampay.core.server.dao.impl.FeeChargeDaoImpl"/>
+    <spring:bean id="illegalAppDao"
+                 class="xyz.homapay.hampay.core.server.dao.impl.IllegalAppDaoImpl"/>
+    <spring:bean id="tacDao"
+                 class="xyz.homapay.hampay.core.server.dao.impl.TACDaoImpl"/>
+
+    <spring:bean id="smsService"
+                 class="xyz.homapay.hampay.core.server.service.SMSService" scope="prototype">
+        <spring:property name="propertiesUtil" ref="propertiesUtil"/>
+    </spring:bean>
+    <spring:bean id="paymentService"
+                 class="xyz.homapay.hampay.core.server.service.PaymentService">
+        <spring:property name="propertiesUtil" ref="propertiesUtil"/>
+    </spring:bean>
+    <spring:bean id="registrationService"
+                 class="xyz.homapay.hampay.core.server.service.RegistrationService">
+        <spring:property name="userService" ref="userService"/>
+        <spring:property name="deviceService" ref="deviceService"/>
+        <spring:property name="propertiesUtil" ref="propertiesUtil"/>
+    </spring:bean>
+
+    <spring:bean id="deviceService"
+                 class="xyz.homapay.hampay.core.server.service.DeviceService">
+        <spring:property name="deviceDao" ref="deviceDao"/>
+    </spring:bean>
+
+
+    <spring:bean id="registrationResponseProvider"
+                 class="xyz.homapay.hampay.core.server.response.RegistrationResponseProvider">
+        <spring:property name="propertiesUtil" ref="propertiesUtil"/>
+    </spring:bean>
+    <spring:bean id="contactusResponseProvider"
+                 class="xyz.homapay.hampay.core.server.response.ContactUsResponseProvider"/>
+    <spring:bean id="banksResponseProvider"
+                 class="xyz.homapay.hampay.core.server.response.BanksResponseProvider"/>
+    <spring:bean id="contactService"
+                 class="xyz.homapay.hampay.core.server.service.ContactService">
+        <spring:property name="userService" ref="userService"/>
+    </spring:bean>
+    <spring:bean id="contactResponseProvider"
+                 class="xyz.homapay.hampay.core.server.response.ContactResponseProvider"/>
+
+    <spring:bean id="transactionService"
+                 class="xyz.homapay.hampay.core.server.service.TransactionService">
+        <spring:property name="businessService" ref="businessService"/>
+        <spring:property name="transactionDao" ref="transactionDao"/>
+        <spring:property name="userService" ref="userService"/>
+        <spring:property name="propertiesUtil" ref="propertiesUtil"/>
+        <spring:property name="paymentService" ref="paymentService"/>
+        <spring:property name="billingService" ref="billingService"/>
+    </spring:bean>
+
+    <spring:bean id="transactionResponseProvider"
+                 class="xyz.homapay.hampay.core.server.response.TransactionResponseProvider"/>
+
+    <spring:bean id="businessService"
+                 class="xyz.homapay.hampay.core.server.service.BusinessService"/>
+    <spring:bean id="businessResponseProvider"
+                 class="xyz.homapay.hampay.core.server.response.BusinessResponseProvider"/>
+
+    <spring:bean id="paymentResponseProvider"
+                 class="xyz.homapay.hampay.core.server.response.PaymentResponseProvider">
+        <spring:property name="transactionService" ref="transactionService"/>
+        <spring:property name="billingService" ref="billingService"/>
+    </spring:bean>
+
+    <spring:bean id="billingService" class="xyz.homapay.hampay.core.server.service.BillingService">
+        <spring:property name="feeChargeDao" ref="feeChargeDao"/>
+    </spring:bean>
+
+    <spring:bean id="illegalAppsService" class="xyz.homapay.hampay.core.server.service.IllegalAppsService">
+        <spring:property name="illegalAppDao" ref="illegalAppDao"/>
+    </spring:bean>
+
+    <spring:bean id="userService"
+                 class="xyz.homapay.hampay.core.server.service.UserService">
+        <spring:property name="userDao" ref="userDao"/>
+        <spring:property name="userGroupDao" ref="userGroupDao"/>
+        <spring:property name="propertiesUtil" ref="propertiesUtil"/>
+    </spring:bean>
+
+    <spring:bean id="userResponseProvider"
+                 class="xyz.homapay.hampay.core.server.response.UserResponseProvider">
+        <spring:property name="userService" ref="userService"/>
+        <spring:property name="propertiesUtil" ref="propertiesUtil"/>
+    </spring:bean>
+
+    <spring:bean id="illegalAppsResponseProvider"
+                 class="xyz.homapay.hampay.core.server.response.IllegalAppsResponseProvider"/>
+
+    <spring:bean id="individualCustomerService"
+                 class="xyz.homapay.hampay.core.server.service.IndividualCustomerService"/>
+    <spring:bean id="individualCustomerResponseProvider"
+                 class="xyz.homapay.hampay.core.server.response.IndividualCustomerResponseProvider"/>
+
+    <spring:bean id="securityService"
+                 class="xyz.homapay.hampay.core.server.service.SecurityService"/>
+    <spring:bean id="securityResponseProvider"
+                 class="xyz.homapay.hampay.core.server.response.SecurityResponseProvider"/>
+
+    <spring:bean id="verifyTransferMoneyResponseProvider"
+                 class="xyz.homapay.hampay.core.server.response.VerifyTransferMoneyResponseProvider"/>
+
+    <spring:bean name="securityAlgorithms" class="xyz.homapay.hampay.core.server.security.SecurityAlgorithmsImpl"/>
+
+    <spring:bean id="tacService"
+                 class="xyz.homapay.hampay.core.server.service.TACService">
+        <spring:property name="userService" ref="userService"/>
+        <spring:property name="deviceService" ref="deviceService"/>
+        <spring:property name="tacDao" ref="tacDao"/>
+    </spring:bean>
+
+    <spring:bean id="tacResponseProvider"
+                 class="xyz.homapay.hampay.core.server.response.TACResponseProvider">
+        <spring:property name="tacService" ref="tacService"/>
+        <spring:property name="userResponseProvider" ref="userResponseProvider"/>
+    </spring:bean>
+
+    <spring:bean id="eventResponseProvider"
+                 class="xyz.homapay.hampay.core.server.response.EventResponseProvider"/>
+
+    <spring:bean id="switchResponseService"
+                 class="xyz.homapay.hampay.core.server.service.switchbay.SwitchResponseService">
+        <spring:property name="transactionService" ref="transactionService"/>
+    </spring:bean>
+
+    <spring:bean id="switchRequestService"
+                 class="xyz.homapay.hampay.core.server.service.switchbay.SwitchRequestService">
+        <spring:property name="propertiesUtil" ref="propertiesUtil"/>
+    </spring:bean>
+
+    <spring:bean id="verificationHistoryService"
+                 class="xyz.homapay.hampay.core.server.service.VerificationHistoryService"/>
+
+    <spring:bean id="versionService" class="xyz.homapay.hampay.core.server.service.VersionService">
+        <spring:property name="versionDao" ref="versionDao"/>
+    </spring:bean>
+
+    <spring:bean id="notificationTimeControlService"
+                 class="xyz.homapay.hampay.core.server.service.NotificationTimeControlService"/>
+
+    <spring:bean id="notificationService" class="xyz.homapay.hampay.core.server.service.NotificationService">
+        <spring:property name="transactionService" ref="transactionService"/>
+        <spring:property name="userService" ref="userService"/>
+        <spring:property name="propertiesUtil" ref="propertiesUtil"/>
+        <spring:property name="deviceService" ref="deviceService"/>
+        <spring:property name="versionService" ref="versionService"/>
+        <spring:property name="notificationDao" ref="notificationDao"/>
+        <spring:property name="maxAppUpdateUserPerNotification" value="${max.app.update.user.per.notifications}"/>
+    </spring:bean>
+
+    <spring:bean id="propertiesUtil" class="xyz.homapay.hampay.core.server.helper.PropertiesUtil"/>
+
+
+</mule>

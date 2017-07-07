@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns:amqp="http://www.mulesoft.org/schema/mule/amqp"
+      xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/3.5/mule.xsd
+      http://www.mulesoft.org/schema/mule/amqp http://www.mulesoft.org/schema/mule/amqp/3.3/mule-amqp.xsd
+      http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/3.5/mule-http.xsd">
+
+    <sub-flow name="FetchAccountInfoFromSwitchFlow">
+        <set-variable variableName="tempPayload" value="#[payload]"/>
+        <invoke object-ref="switchRequestService"
+                method="getAccountProfileRequestMessageFromSwitchByBankAndAccount"
+                methodArguments="#[flowVars.userAccountBankCode],#[flowVars.userAccountNumber],#[flowVars.userNationalCode]"/>
+        <transformer ref="RequestMessageToJson"/>
+        <enricher>
+            <processor-chain>
+                <remove-property propertyName="http.*"/>
+                <set-property propertyName="Content-Type" value="application/json"/>
+                <http:outbound-endpoint address="${hampay-switch-host}:${hampay-switch-port}/accountProfile"
+                                        method="POST"/>
+                <byte-array-to-string-transformer/>
+                <transformer ref="JsonToResponseMessage_AccountProfileResponse"/>
+            </processor-chain>
+            <enrich target="#[variable:switchAccountProfile]" source="#[payload]"/>
+        </enricher>
+        <invoke object-ref="switchResponseService" method="checkAccountProfileStatus"
+                methodArguments="#[flowVars.switchAccountProfile.service]"/>
+        <set-payload value="#[flowVars.tempPayload]"/>
+    </sub-flow>
+
+    <sub-flow name="SendVerifyTransactionRequestToSwitchFlow">
+        <invoke object-ref="switchRequestService" method="getSwitchVerifyTransactionRequestMessage"
+                methodArguments="#[flowVars.user],#[flowVars.verificationHistory]"/>
+        <transformer ref="RequestMessageToJson"/>
+        <http:outbound-endpoint address="${hampay-switch-host}:${hampay-switch-port}/verifyXfer" method="POST"/>
+        <byte-array-to-string-transformer/>
+        <transformer ref="JsonToResponseMessage_VerifyTransactionResponse"/>
+        <invoke object-ref="switchResponseService" method="checkVerifyTransactionStatus"
+                methodArguments="#[payload.service]"/>
+    </sub-flow>
+
+    <sub-flow name="SendPaymentRequestForRegistrationToSwitchFlow">
+        <invoke object-ref="switchRequestService" method="getSwitchPaymentRequestMessageForRegistration"
+                methodArguments="#[flowVars.user],#[flowVars.depositDTO]"/>
+        <transformer ref="RequestMessageToJson"/>
+        <amqp:outbound-endpoint connector-ref="amqpRabbitMQConnector" exchangeName="${switch.exchange.reg.payment.request}"
+                                exchangeType="topic" exchangeDurable="true" routingKey="${core.switch.routing.key}"/>
+    </sub-flow>
+
+    <sub-flow name="SendPaymentRequestToSwitchFlow">
+        <choice>
+            <when expression="#[flowVars.business == null]">
+                <invoke object-ref="switchRequestService" method="createSwitchPaymentRequestForIndividual"
+                        methodArguments="#[flowVars.user],#[flowVars.transaction]"/>
+            </when>
+            <otherwise>
+                <invoke object-ref="switchRequestService" method="createSwitchPaymentRequestForBusiness"
+                        methodArguments="#[flowVars.user],#[flowVars.transaction],#[flowVars.business]"/>
+            </otherwise>
+        </choice>
+        <invoke object-ref="transactionService" method="updateTransactionStatusToPending"
+                methodArguments="#[flowVars.transaction]"/>
+        <transformer ref="RequestMessageToJson"/>
+        <amqp:outbound-endpoint connector-ref="amqpRabbitMQConnector" exchangeName="${switch.exchange.payment.request}"
+                                exchangeType="topic" exchangeDurable="true" routingKey="${core.switch.routing.key}"/>
+    </sub-flow>
+
+    <flow name="ReceivePaymentResponseFromSwitch">
+        <amqp:inbound-endpoint queueName="${queue.payment.response}" exchange-pattern="one-way"
+                               connector-ref="amqpRabbitMQConnector"/>
+        <byte-array-to-string-transformer/>
+        <transformer ref="JsonToResponseMessage_PaymentResponse"/>
+        <invoke object-ref="switchResponseService" method="updatePaymentTransactionStatus"
+                methodArguments="#[payload.service]"/>
+    </flow>
+
+</mule>

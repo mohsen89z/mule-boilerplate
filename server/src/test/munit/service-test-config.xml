@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns:spring="http://www.springframework.org/schema/beans"
+      xsi:schemaLocation="
+      http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/3.5/mule.xsd
+      http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/3.5/mule-http.xsd
+      http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.2.xsd">
+
+    <spring:bean id="userService" class="xyz.homapay.hampay.core.test.service.EasyMockFactoryBean">
+        <spring:property name="mockedClass" value="xyz.homapay.hampay.core.server.service.UserService"/>
+    </spring:bean>
+
+    <spring:bean id="transactionService" class="xyz.homapay.hampay.core.test.service.EasyMockFactoryBean">
+        <spring:property name="mockedClass" value="xyz.homapay.hampay.core.server.service.TransactionService"/>
+    </spring:bean>
+
+    <spring:bean id="securityService"
+                 class="xyz.homapay.hampay.core.server.service.SecurityService"/>
+
+    <spring:bean id="smsService" class="xyz.homapay.hampay.core.test.service.EasyMockFactoryBean">
+        <spring:property name="mockedClass" value="xyz.homapay.hampay.core.server.service.SMSService"/>
+    </spring:bean>
+
+    <spring:bean id="registrationService" class="xyz.homapay.hampay.core.test.service.EasyMockFactoryBean">
+        <spring:property name="mockedClass" value="xyz.homapay.hampay.core.server.service.RegistrationService"/>
+    </spring:bean>
+
+    <spring:bean id="businessService" class="xyz.homapay.hampay.core.test.service.EasyMockFactoryBean">
+        <spring:property name="mockedClass" value="xyz.homapay.hampay.core.server.service.BusinessService"/>
+    </spring:bean>
+
+    <spring:bean id="individualCustomerService" class="xyz.homapay.hampay.core.test.service.EasyMockFactoryBean">
+        <spring:property name="mockedClass" value="xyz.homapay.hampay.core.server.service.IndividualCustomerService"/>
+    </spring:bean>
+
+    <spring:bean id="tacService" class="xyz.homapay.hampay.core.test.service.EasyMockFactoryBean">
+        <spring:property name="mockedClass" value="xyz.homapay.hampay.core.server.service.TACService"/>
+    </spring:bean>
+
+    <spring:bean id="verificationHistoryService" class="xyz.homapay.hampay.core.test.service.EasyMockFactoryBean">
+        <spring:property name="mockedClass" value="xyz.homapay.hampay.core.server.service.VerificationHistoryService"/>
+    </spring:bean>
+
+    <spring:bean id="contactService" class="xyz.homapay.hampay.core.test.service.EasyMockFactoryBean">
+        <spring:property name="mockedClass" value="xyz.homapay.hampay.core.server.service.ContactService"/>
+    </spring:bean>
+
+    <spring:bean id="illegalAppsService" class="xyz.homapay.hampay.core.test.service.EasyMockFactoryBean">
+        <spring:property name="mockedClass" value="xyz.homapay.hampay.core.server.service.IllegalAppsService"/>
+    </spring:bean>
+
+    <spring:bean id="switchResponseService"
+                 class="xyz.homapay.hampay.core.server.service.switchbay.SwitchResponseService">
+        <spring:property name="transactionService" ref="transactionService"/>
+    </spring:bean>
+
+    <spring:bean id="switchRequestService"
+                 class="xyz.homapay.hampay.core.server.service.switchbay.SwitchRequestService"/>
+
+    <spring:bean id="businessResponseProvider"
+                 class="xyz.homapay.hampay.core.server.response.BusinessResponseProvider"/>
+    <spring:bean id="paymentResponseProvider"
+                 class="xyz.homapay.hampay.core.server.response.PaymentResponseProvider"/>
+    <spring:bean id="userResponseProvider"
+                 class="xyz.homapay.hampay.core.server.response.UserResponseProvider"/>
+    <spring:bean id="individualCustomerResponseProvider"
+                 class="xyz.homapay.hampay.core.server.response.IndividualCustomerResponseProvider"/>
+    <spring:bean id="securityResponseProvider"
+                 class="xyz.homapay.hampay.core.server.response.SecurityResponseProvider"/>
+    <spring:bean id="verifyTransferMoneyResponseProvider"
+                 class="xyz.homapay.hampay.core.server.response.VerifyTransferMoneyResponseProvider"/>
+    <spring:bean id="tacResponseProvider"
+                 class="xyz.homapay.hampay.core.server.response.TACResponseProvider"/>
+    <spring:bean id="eventResponseProvider"
+                 class="xyz.homapay.hampay.core.server.response.EventResponseProvider"/>
+    <spring:bean id="contactResponseProvider"
+                 class="xyz.homapay.hampay.core.server.response.ContactResponseProvider"/>
+    <spring:bean id="transactionResponseProvider"
+                 class="xyz.homapay.hampay.core.server.response.TransactionResponseProvider"/>
+    <spring:bean id="registrationResponseProvider"
+                 class="xyz.homapay.hampay.core.server.response.RegistrationResponseProvider"/>
+    <spring:bean id="banksResponseProvider"
+                 class="xyz.homapay.hampay.core.server.response.BanksResponseProvider"/>
+    <spring:bean id="contactusResponseProvider"
+                 class="xyz.homapay.hampay.core.server.response.ContactUsResponseProvider"/>
+    <spring:bean id="paymentService"
+                 class="xyz.homapay.hampay.core.server.service.PaymentService"/>
+    <spring:bean name="securityAlgorithms" class="xyz.homapay.hampay.core.server.security.SecurityAlgorithmsImpl"/>
+
+    <spring:bean id="illegalAppsResponseProvider"
+                 class="xyz.homapay.hampay.core.server.response.IllegalAppsResponseProvider"/>
+
+
+</mule>

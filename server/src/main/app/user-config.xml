@@ -1,0 +1,242 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns:amqp="http://www.mulesoft.org/schema/mule/amqp"
+      xsi:schemaLocation="
+      http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/3.5/mule.xsd
+      http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/3.5/mule-http.xsd
+      http://www.mulesoft.org/schema/mule/amqp http://www.mulesoft.org/schema/mule/amqp/3.3/mule-amqp.xsd">
+
+
+    <!-- After registration, user can request to verify his bank account number, and after completion of verification process, his verification status changes to verified from limited -->
+    <flow name="VerifyAccountFlow">
+        <amqp:inbound-endpoint queueName="${queue.verifyAccountRequest}" exchange-pattern="one-way"
+                               connector-ref="amqpRabbitMQConnector"/>
+        <byte-array-to-string-transformer/>
+        <transformer ref="verifyAccountRequestTransformer"/>
+        <set-variable variableName="requestPayload" value="#[payload]"/>
+        <flow-ref name="RetrieveUserInfo"/>
+
+        <choice>
+            <when expression="#[flowVars.authorized]">
+                <flow-ref name="GetUserByUserId"/>
+
+                <enricher target="#[variable:verificationHistory]">
+                    <invoke object-ref="verificationHistoryService" method="getUnsettledVerificationHistoryStatus"
+                            methodArguments="#[flowVars.user]"/>
+                </enricher>
+
+                <choice>
+                    <when expression="#[!(flowVars.verificationHistory is org.mule.transport.NullPayload)]">
+                        <flow-ref name="GetVerifyAccountInfoFromUserVerification"/>
+                    </when>
+                    <otherwise>
+                        <flow-ref name="CreateDepositDTOByUserId"/>
+                        <flow-ref name="SendPaymentRequestForRegistrationToSwitchFlow"/>
+                        <invoke object-ref="verificationHistoryService"
+                                method="createAndSaveUserVerificationHistoryForUser"
+                                methodArguments="#[flowVars.user],#[flowVars.depositDTO.amount]"/>
+                    </otherwise>
+                </choice>
+
+                <invoke object-ref="userResponseProvider" method="createVerifyAccountResponse"
+                        methodArguments="#[flowVars.DepositDTO],#[flowVars.requestPayload.service.requestUUID]"/>
+            </when>
+            <otherwise>
+                <invoke object-ref="userResponseProvider" method="createAuthenticationFailureVerifyAccountResponse"
+                        methodArguments="#[payload.service.requestUUID]"/>
+            </otherwise>
+        </choice>
+        <transformer ref="ResponseMessageToJson"/>
+        <amqp:outbound-endpoint connector-ref="amqpRabbitMQConnector" exchangeName="${exchange.verifyAcctResponse}"
+                                exchangeType="topic" exchangeDurable="true" routingKey="${core.routing.key}"/>
+        <exception-strategy ref="VerifyAccountException"/>
+    </flow>
+
+
+    <!-- Verify Transfer Money Flow-->
+    <flow name="VerifyTransferMoneyFlow">
+        <amqp:inbound-endpoint queueName="${queue.verifyXferRequest}" exchange-pattern="one-way"
+                               connector-ref="amqpRabbitMQConnector"/>
+        <byte-array-to-string-transformer/>
+        <transformer ref="verifyXferRequestTransformer"/>
+        <set-variable variableName="requestPayload" value="#[payload]"/>
+
+        <flow-ref name="RetrieveUserInfo"/>
+
+        <choice>
+            <when expression="#[flowVars.authorized]">
+                <flow-ref name="GetUserByUserId"/>
+                <enricher target="#[variable:verificationHistory]">
+                    <invoke object-ref="verificationHistoryService" method="findUnsettledVerificationByUserId"
+                            methodArguments="#[flowVars.user]"/>
+                </enricher>
+
+                <flow-ref name="SendVerifyTransactionRequestToSwitchFlow"/>
+                <invoke object-ref="userService" method="updateUserVerificationStatus"
+                        methodArguments="#[flowVars.user]"/>
+
+                <invoke object-ref="userResponseProvider" method="createTransferMoneyResponse"
+                        methodArguments="#[flowVars.requestPayload.service.requestUUID]"/>
+            </when>
+            <otherwise>
+                <invoke object-ref="userResponseProvider"
+                        method="createAuthenticationFailureVerifyTransferMoneyResponse"
+                        methodArguments="#[payload.service.requestUUID]"/>
+            </otherwise>
+        </choice>
+        <transformer ref="ResponseMessageToJson"/>
+        <amqp:outbound-endpoint connector-ref="amqpRabbitMQConnector" exchangeName="${exchange.verifyXferResponse}"
+                                exchangeType="topic" exchangeDurable="true" routingKey="${core.routing.key}"/>
+        <exception-strategy ref="VerifyXferException"/>
+    </flow>
+
+    <sub-flow name="GetUserByUserId">
+        <enricher target="#[variable:user]">
+            <invoke object-ref="userService" method="findActivatedUserByUserId" methodArguments="#[flowVars.currentUser.userId]"/>
+        </enricher>
+    </sub-flow>
+
+
+    <sub-flow name="CreateDepositDTOByUserId">
+        <enricher target="#[variable:depositDTO]">
+            <invoke object-ref="userService" method="createDepositDTO"
+                    methodArguments="#[flowVars.user]"/>
+        </enricher>
+    </sub-flow>
+
+    <flow name="UserProfileFlow">
+        <amqp:inbound-endpoint queueName="${queue.userProfileRequest}" exchange-pattern="one-way"
+                               connector-ref="amqpRabbitMQConnector"/>
+        <byte-array-to-string-transformer/>
+        <transformer ref="userProfileRequestTransformer"/>
+        <set-variable variableName="requestPayload" value="#[payload]"/>
+        <flow-ref name="RetrieveUserInfo"/>
+
+        <choice>
+            <when expression="#[flowVars.authorized]">
+                <flow-ref name="GetUserByUserId"/>
+                <invoke object-ref="userResponseProvider" method="createProfileResponse"
+                        methodArguments="#[payload.service.requestUUID],#[flowVars.user]"/>
+            </when>
+            <otherwise>
+                <invoke object-ref="userResponseProvider" method="createAuthFailureUserProfileResponse"
+                        methodArguments="#[payload.service.requestUUID]"/>
+            </otherwise>
+        </choice>
+        <transformer ref="ResponseMessageToJson"/>
+        <amqp:outbound-endpoint connector-ref="amqpRabbitMQConnector" exchangeName="${exchange.profileResponse}"
+                                exchangeType="topic" exchangeDurable="true" routingKey="${core.routing.key}"/>
+        <exception-strategy ref="UserProfileException"/>
+    </flow>
+
+    <flow name="GetUserIdTokenFlow">
+        <amqp:inbound-endpoint queueName="${queue.getUserIdTokenRequest}" exchange-pattern="one-way"
+                               connector-ref="amqpRabbitMQConnector"/>
+        <byte-array-to-string-transformer/>
+        <transformer ref="getUserIdTokenRequestTransformer"/>
+        <set-variable variableName="requestPayload" value="#[payload]"/>
+        <flow-ref name="RetrieveUserInfo"/>
+
+        <choice>
+            <when expression="#[flowVars.authorized]">
+                <flow-ref name="GetUserByUserId"/>
+                <invoke object-ref="userResponseProvider" method="createGetUserIdTokenResponse"
+                        methodArguments="#[payload.service.requestUUID],#[flowVars.user]"/>
+            </when>
+            <otherwise>
+                <invoke object-ref="userResponseProvider" method="createAuthFailureGetUserIdTokenResponse"
+                        methodArguments="#[payload.service.requestUUID]"/>
+            </otherwise>
+        </choice>
+        <transformer ref="ResponseMessageToJson"/>
+        <amqp:outbound-endpoint connector-ref="amqpRabbitMQConnector" exchangeName="${exchange.getUserIdTokenResponse}"
+                                exchangeType="topic" exchangeDurable="true" routingKey="${core.routing.key}"/>
+        <exception-strategy ref="GetUserIdTokenException"/>
+    </flow>
+
+    <flow name="UploadUserImageFlow">
+        <amqp:inbound-endpoint queueName="${queue.uploadImageRequest}" exchange-pattern="one-way"
+                               connector-ref="amqpRabbitMQConnector"/>
+        <byte-array-to-string-transformer/>
+        <transformer ref="uploadImageRequestTransformer"/>
+        <set-variable variableName="requestPayload" value="#[payload]"/>
+        <flow-ref name="RetrieveUserInfo"/>
+
+        <choice>
+            <when expression="#[flowVars.authorized]">
+                <flow-ref name="GetUserByUserId"/>
+                <invoke object-ref="userService" method="insertImage"
+                        methodArguments="#[payload.service.image],#[flowVars.user]"/>
+                <invoke object-ref="userResponseProvider" method="createUploadImageResponse"
+                        methodArguments="#[payload.service.requestUUID]"/>
+            </when>
+            <otherwise>
+                <invoke object-ref="userResponseProvider" method="createAuthFailureUploadImageResponse"
+                        methodArguments="#[payload.service.requestUUID]"/>
+            </otherwise>
+        </choice>
+        <transformer ref="ResponseMessageToJson"/>
+        <amqp:outbound-endpoint connector-ref="amqpRabbitMQConnector" exchangeName="${exchange.uploadImageResponse}"
+                                exchangeType="topic" exchangeDurable="true" routingKey="${core.routing.key}"/>
+        <exception-strategy ref="UploadImageException"/>
+    </flow>
+
+    <flow name="retrieveImage">
+        <invoke object-ref="userService" method="createRequestObjectToValidateAuthToken"
+                methodArguments="#[flowVars.authToken]"/>
+        <flow-ref name="RetrieveUserInfo"/>
+        <choice>
+            <when expression="#[flowVars.authorized]">
+                <invoke object-ref="userService" method="findImageByFileName"
+                        methodArguments="#[flowVars.imageId]"/>
+            </when>
+            <otherwise>
+                <logger level="INFO" message="URL is not valid to send image"/>
+            </otherwise>
+        </choice>
+    </flow>
+
+    <flow name="ChangeEmailFlow">
+        <amqp:inbound-endpoint queueName="${queue.changeEmailRequest}" exchange-pattern="one-way"
+                               connector-ref="amqpRabbitMQConnector"/>
+        <byte-array-to-string-transformer/>
+        <transformer ref="changeEmailRequestTransformer"/>
+        <set-variable variableName="requestPayload" value="#[payload]"/>
+        <flow-ref name="RetrieveUserInfo"/>
+        <choice>
+            <when expression="#[flowVars.authorized]">
+                <flow-ref name="GetUserByUserId"/>
+                <enricher target="#[variable:password]">
+                    <invoke object-ref="securityAlgorithms" method="generatePassword"
+                            methodArguments="#[payload.service.memorableWord],#[payload.service.passCode],#[flowVars.user]"/>
+                </enricher>
+                <set-variable variableName="username" value="#[flowVars.user.userId]"/>
+                <flow-ref name="LoginUserToIdentityProvider"/>
+                <choice>
+                    <when expression="#[flowVars.idpStatus == 200]">
+                        <invoke object-ref="userService" method="updateUserEmail"
+                                methodArguments="#[requestPayload.service.email],#[flowVars.user]"/>
+                        <invoke object-ref="userResponseProvider" method="createChangeEmailResponse"
+                                methodArguments="#[payload.service.requestUUID]"/>
+                    </when>
+                    <otherwise>
+                        <invoke object-ref="userResponseProvider" method="createInvalidPasscodeForChangeEmailResponse"
+                                methodArguments="#[payload.service.requestUUID]"/>
+                    </otherwise>
+                </choice>
+
+            </when>
+            <otherwise>
+                <invoke object-ref="userResponseProvider" method="createAuthFailureChangeEmailResponse"
+                        methodArguments="#[payload.service.requestUUID]"/>
+            </otherwise>
+        </choice>
+        <transformer ref="ResponseMessageToJson"/>
+        <amqp:outbound-endpoint connector-ref="amqpRabbitMQConnector" exchangeName="${exchange.changeEmailResponse}"
+                                exchangeType="topic" exchangeDurable="true" routingKey="${core.routing.key}"/>
+        <exception-strategy ref="ChangeEmailException"/>
+    </flow>
+</mule>

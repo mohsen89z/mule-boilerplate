@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xmlns:quartz="http://www.mulesoft.org/schema/mule/quartz"
+      xmlns:http="http://www.mulesoft.org/schema/mule/http"
+
+      xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/3.5/mule.xsd
+            http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/3.5/mule-http.xsd
+       http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/quartz/3.5/mule-quartz.xsd">
+
+    <quartz:connector name="paymentQuartzConnector">
+        <quartz:factory-property key="org.quartz.scheduler.instanceName" value="MuleCoreServerScheduler"/>
+        <quartz:factory-property key="org.quartz.threadPool.class" value="org.quartz.simpl.SimpleThreadPool"/>
+        <quartz:factory-property key="org.quartz.threadPool.threadCount" value="1"/>
+    </quartz:connector>
+
+    <flow name="reconcileFailedTransferScheduleFlow">
+        <quartz:inbound-endpoint cronExpression=" 0 0/240 * * * ?" jobName="appUpdateNotificationJob"
+                                 connector-ref="paymentQuartzConnector">
+            <quartz:event-generator-job/>
+        </quartz:inbound-endpoint>
+        <logger level="INFO" message="!!!!!!!App update quartz runs!!!!!!!"/>
+        <flow-ref name="sendUpdateNotificationJob"/>
+    </flow>
+
+</mule>

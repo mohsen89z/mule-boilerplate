@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns:amqp="http://www.mulesoft.org/schema/mule/amqp"
+      xsi:schemaLocation="
+        http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/3.5/mule.xsd
+        http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/3.5/mule-http.xsd
+        http://www.mulesoft.org/schema/mule/amqp http://www.mulesoft.org/schema/mule/amqp/3.3/mule-amqp.xsd">
+
+    <flow name="EventListFlow">
+        <byte-array-to-string-transformer/>
+        <logger message="Event list Flow payload in flow entry : #[payload]" level="INFO"/>
+        <transformer ref="eventListRequestTransformer"/>
+        <set-variable variableName="authorized" value="#[true]"/>
+
+        <choice>
+            <when expression="#[flowVars.authorized]">
+                <invoke object-ref="eventResponseBuilder" method="createEventListSuccessResponse"
+                        methodArguments="#[payload.service]"/>
+                <set-property propertyName="status" value="200"/>
+            </when>
+            <otherwise>
+                <logger message="Request failed" level="INFO"/>
+            </otherwise>
+        </choice>
+        <transformer ref="ResponseMessageToJson"/>
+        <set-property propertyName="Content-Type" value="application/json; charset=utf-8"/>
+    </flow>
+
+</mule>

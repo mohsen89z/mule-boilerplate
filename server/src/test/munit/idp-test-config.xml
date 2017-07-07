@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xsi:schemaLocation="
+      http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/3.5/mule.xsd
+      http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/3.5/mule-http.xsd">
+
+    <!-- changed -->
+    <sub-flow name="GetUserPasswordByTokenIdentityProvider">
+        <enricher>
+            <processor-chain>
+                <remove-property propertyName="http.*"/>
+                <set-property propertyName="Content-Type" value="application/json"/>
+                <set-property propertyName="iplanetDirectoryPro" value="#[flowVars.idpToken]"/>
+                <http:outbound-endpoint address="${idp.uri}/json/users/#[flowVars.username]?_fields=uid,userpassword"
+                                        method="GET"/>
+                <byte-array-to-string-transformer/>
+            </processor-chain>
+            <enrich target="#[variable:idpStatus]" source="#[message.inboundProperties['http.status']]"/>
+            <!-- in test below lines are substituted  because of we can not set payload for this situation in test env-->
+            <!--<enrich target="#[variable:idpUsername]" source="#[payload.username]"/>
+            <enrich target="#[variable:idpUserPassword]" source="#[payload.userpassword]"/>-->
+            <enrich target="#[variable:idpUsername]" source="#[message.inboundProperties['username']]"/>
+            <enrich target="#[variable:idpUserPassword]" source="#[message.inboundProperties['userpassword']]"/>
+        </enricher>
+    </sub-flow>
+
+    <sub-flow name="ChangePasswordIdentityProvider">
+        <enricher>
+            <processor-chain>
+                <remove-property propertyName="http.*"/>
+                <set-property propertyName="Content-Type" value="application/json"/>
+                <set-property propertyName="iplanetDirectoryPro" value="#[flowVars.idpToken]"/>
+                <set-property propertyName="data" value="{'userpassword' : #[flowVars.newPassword]}"/>
+                <http:outbound-endpoint address="${idp.uri}/json/users/#[flowVars.username]" method="PUT"/>
+                <byte-array-to-string-transformer/>
+            </processor-chain>
+            <enrich target="#[variable:idpStatus]" source="#[message.inboundProperties['http.status']]"/>
+        </enricher>
+    </sub-flow>
+
+    <sub-flow name="LoginToIdentityProvider">
+        <enricher>
+            <processor-chain>
+                <remove-property propertyName="http.*"/>
+                <set-payload value=""/>
+                <set-property propertyName="Content-Type" value="application/json"/>
+                <set-property propertyName="X-OpenAM-Username" value="${idp.username}"/>
+                <set-property propertyName="X-OpenAM-Password" value="${idp.password}"/>
+                <http:outbound-endpoint address="${idp.uri}/json/authenticate" method="POST"/>
+                <byte-array-to-string-transformer/>
+                <set-variable variableName="idpStatus" value="#[message.inboundProperties['http.status']]"/>
+                <logger message="Identity provider returned #[payload]" level="INFO"/>
+                <expression-transformer evaluator="json" expression="tokenId" />
+            </processor-chain>
+            <enrich target="#[variable:idpStatus]" source="#[message.inboundProperties['http.status']]"/>
+            <enrich target="#[variable:idpToken]" source="#[payload]"/>
+        </enricher>
+    </sub-flow>
+
+    <sub-flow name="LogoutOfIdentityProvider">
+        <enricher>
+            <processor-chain>
+                <remove-property propertyName="http.*"/>
+                <set-property propertyName="Content-Type" value="application/json"/>
+                <set-property propertyName="iplanetDirectoryPro" value="#[flowVars.idpToken]"/>
+                <http:outbound-endpoint address="${idp.uri}/json/sessions/?_action=logout" method="POST"/>
+                <byte-array-to-string-transformer/>
+            </processor-chain>
+            <enrich target="#[variable:idpStatus]" source="#[message.inboundProperties['http.status']]"/>
+            <enrich target="#[variable:logoffResult]" source="#[payload]"/>
+        </enricher>
+    </sub-flow>
+
+    <sub-flow name="CreateUserInIdentityProvider">
+        <enricher>
+            <processor-chain>
+                <remove-property propertyName="http.*"/>
+                <set-property propertyName="Content-Type" value="application/json"/>
+                <set-property propertyName="iplanetDirectoryPro" value="#[flowVars.idpToken]"/>
+                <http:outbound-endpoint address="${idp.uri}/json/users/?_action=create" method="POST"/>
+                <byte-array-to-string-transformer/>
+            </processor-chain>
+            <enrich target="#[variable:idpStatus]" source="#[message.inboundProperties['http.status']]"/>
+            <enrich target="#[variable:createUserResult]" source="#[payload]"/>
+        </enricher>
+    </sub-flow>
+
+    <sub-flow name="ReadUserFromIdentityProvider">
+        <enricher>
+            <processor-chain>
+                <remove-property propertyName="http.*"/>
+                <set-property propertyName="Content-Type" value="application/json"/>
+                <set-property propertyName="iplanetDirectoryPro" value="#[flowVars.idpToken]"/>
+                <http:outbound-endpoint address="${idp.uri}/json/users/#[flowVars.username]" method="GET"/>
+                <byte-array-to-string-transformer/>
+            </processor-chain>
+            <enrich target="#[variable:idpStatus]" source="#[message.inboundProperties['http.status']]"/>
+            <enrich target="#[variable:userInfo]" source="#[payload]"/>
+        </enricher>
+    </sub-flow>
+
+    <sub-flow name="DeleteUserFromIdentityProvider">
+        <enricher>
+            <processor-chain>
+                <remove-property propertyName="http.*"/>
+                <set-property propertyName="Content-Type" value="application/json"/>
+                <set-property propertyName="iplanetDirectoryPro" value="#[flowVars.idpToken]"/>
+                <http:outbound-endpoint address="${idp.uri}/json/users/#[flowVars.username]" method="DELETE"/>
+                <byte-array-to-string-transformer/>
+            </processor-chain>
+            <enrich target="#[variable:idpStatus]" source="#[message.inboundProperties['http.status']]"/>
+            <enrich target="#[variable:deleteUserResult]" source="#[payload]"/>
+        </enricher>
+    </sub-flow>
+
+    <sub-flow name="GetUserByToken">
+        <enricher>
+            <processor-chain>
+                <set-payload value=""/>
+                <remove-property propertyName="http.*"/>
+                <set-property propertyName="Content-Type" value="application/json"/>
+                <http:outbound-endpoint address="${idp.uri}/json/sessions/#[flowVars.idpToken]?_action=validate" method="POST"/>
+                <byte-array-to-string-transformer/>
+            </processor-chain>
+            <enrich target="#[variable:idpStatus]" source="#[message.inboundProperties['http.status']]"/>
+            <enrich target="#[variable:idpUser]" source="#[payload]"/>
+        </enricher>
+
+    </sub-flow>
+
+    <sub-flow name="CreateTestUserInIdentityProvider">
+        <flow-ref name="LoginToIdentityProvider"/>
+        <enricher>
+            <processor-chain>
+                <remove-property propertyName="http.*"/>
+                <set-property propertyName="Content-Type" value="application/json"/>
+                <set-property propertyName="iplanetDirectoryPro" value="#[flowVars.idpToken]"/>
+                <http:outbound-endpoint address="${idp.uri}/json/users/?_action=create" method="POST"/>
+                <byte-array-to-string-transformer/>
+            </processor-chain>
+            <enrich target="#[variable:idpStatus]" source="#[message.inboundProperties['http.status']]"/>
+            <enrich target="#[variable:createUserResult]" source="#[payload]"/>
+        </enricher>
+        <logger level="INFO" message="useeeeeeeeeeeeeeeeeeeer#[flowVars.createUserResult]"/>
+    </sub-flow>
+
+    <sub-flow name="LoginToTestUserInIDP">
+        <enricher>
+            <processor-chain>
+                <remove-property propertyName="http.*"/>
+                <set-payload value=""/>
+                <set-property propertyName="Content-Type" value="application/json"/>
+                <set-property propertyName="X-OpenAM-Username" value="0083519076"/>
+                <set-property propertyName="X-OpenAM-Password" value="1234567890"/>
+                <http:outbound-endpoint address="${idp.uri}/json/authenticate" method="POST"/>
+                <byte-array-to-string-transformer/>
+                <set-variable variableName="idpStatus" value="#[message.inboundProperties['http.status']]"/>
+                <logger message="Identity provider returned #[payload]" level="INFO"/>
+                <expression-transformer evaluator="json" expression="tokenId" />
+            </processor-chain>
+            <enrich target="#[variable:idpStatus]" source="#[message.inboundProperties['http.status']]"/>
+            <enrich target="#[variable:idpToken]" source="#[payload]"/>
+        </enricher>
+        <logger level="INFO" message="Tokeeeeeeeeeeen:#[flowVars.idpToken]"/>
+    </sub-flow>
+
+</mule>

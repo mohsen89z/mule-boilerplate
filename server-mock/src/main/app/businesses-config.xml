@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xsi:schemaLocation="
+      http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/3.5/mule.xsd
+      http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/3.5/mule-http.xsd">
+
+    <flow name="BusinessListFlow">
+        <byte-array-to-string-transformer/>
+        <logger message="BusinessList payload in flow entry : #[payload]" level="INFO"/>
+        <transformer ref="businessListRequestTransformer"/>
+        <logger message="BusinessList payload requestUUID : #[payload.service.requestUUID]" level="INFO"/>
+        <set-variable variableName="authorized" value="#[true]"/>
+
+        <choice>
+            <when expression="#[flowVars.authorized]">
+                <invoke object-ref="businessesResponseBuilder" method="createBusinessListSuccessResponse"
+                        methodArguments="#[payload.service]"/>
+                <set-property propertyName="status" value="200"/>
+            </when>
+            <otherwise>
+                <invoke object-ref="businessesResponseBuilder" method="createBusinessListFailureResponse"
+                        methodArguments="#[payload.service]"/>
+                <set-property propertyName="status" value="401"/>
+            </otherwise>
+        </choice>
+        <transformer ref="ResponseMessageToJson"/>
+        <logger message="BusinessList payload after transformation : #[payload]" level="INFO"/>
+        <set-property propertyName="Content-Type" value="application/json; charset=utf-8"/>
+    </flow>
+
+</mule>

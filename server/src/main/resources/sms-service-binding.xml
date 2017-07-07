@@ -1,0 +1,45 @@
+<jxb:bindings xmlns:s="http://www.w3.org/2001/XMLSchema"
+              xmlns:jxb="http://java.sun.com/xml/ns/jaxb" xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/"
+              version="2.1">
+
+    <!-- Raise theEnumMemberSizeCap limit -->
+    <jxb:bindings>
+        <jxb:globalBindings typesafeEnumMaxMembers="2000" />
+    </jxb:bindings>
+
+    <!--<jxb:bindings  node="wsdl:definitions/wsdl:types/xs:schema">-->
+    <!--<jxb:bindings  node="wsdl:definitions/wsdl:types/s:schema/s:element">-->
+    <jxb:bindings  node="wsdl:definitions/wsdl:types/s:schema">
+        <!--<jxb:bindings-->
+            <!--node="//xs:complexType[@name='ReviseInventoryStatusRequestType']">-->
+            <!--<jxb:bindings node="//xs:complexContent">-->
+                <!--<jxb:bindings node="//xs:sequence">-->
+                    <!--<jxb:bindings node="//xs:any">-->
+                        <!--<jxb:property name="any2" />-->
+                    <!--</jxb:bindings>-->
+                <!--</jxb:bindings>-->
+            <!--</jxb:bindings>-->
+        <!--</jxb:bindings>-->
+        <jxb:bindings
+            node="//s:element[@name='getemailsubjectResponse']">
+            <jxb:bindings node="//s:complexType">
+                <jxb:bindings node="//s:sequence">
+                    <jxb:bindings node="//s:any">
+                        <jxb:property name="any2" />
+                    </jxb:bindings>
+                </jxb:bindings>
+            </jxb:bindings>
+        </jxb:bindings>
+        <jxb:bindings
+            node="//s:element[@name='ReceiveSmsResponse']">
+            <jxb:bindings node="//s:complexType">
+                <jxb:bindings node="//s:sequence">
+                    <jxb:bindings node="//s:any">
+                        <jxb:property name="any3" />
+                    </jxb:bindings>
+                </jxb:bindings>
+            </jxb:bindings>
+        </jxb:bindings>
+    </jxb:bindings>
+
+</jxb:bindings>

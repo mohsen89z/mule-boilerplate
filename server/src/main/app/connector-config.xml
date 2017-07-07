@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns:amqp="http://www.mulesoft.org/schema/mule/amqp"
+      xmlns:mongo="http://www.mulesoft.org/schema/mule/mongo"
+      xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/3.5/mule.xsd
+      http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/3.5/mule-http.xsd
+      http://www.mulesoft.org/schema/mule/mongo http://www.mulesoft.org/schema/mule/mongo/2.0/mule-mongo.xsd
+      http://www.mulesoft.org/schema/mule/amqp http://www.mulesoft.org/schema/mule/amqp/3.3/mule-amqp.xsd">
+
+    <amqp:connector name="amqpRabbitMQConnector" host="${rabbitmq.host}" username="${rabbitmq.username}" password="${rabbitmq.password}" >
+        <reconnect frequency="1000" count="5"/>
+    </amqp:connector>
+
+    <mongo:config name="defaultMongo" host="${mongodb.host}" database="${mongodb.database}"  username="${mongodb.username}"
+                  password="${mongodb.password}" port="${mongodb.port}">
+        <reconnect blocking="false" frequency="1000" count="5"/>
+    </mongo:config>
+
+    <asynchronous-processing-strategy name="executeMultiThreadStrategy" maxThreads="60"  minThreads="1"  />
+
+
+</mule>

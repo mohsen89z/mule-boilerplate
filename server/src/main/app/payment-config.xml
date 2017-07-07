@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns:amqp="http://www.mulesoft.org/schema/mule/amqp"
+      xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/3.5/mule.xsd
+      http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/3.5/mule-http.xsd
+      http://www.mulesoft.org/schema/mule/amqp http://www.mulesoft.org/schema/mule/amqp/3.3/mule-amqp.xsd">
+
+    <flow name="BusinessPaymentRequestFlow">
+        <amqp:inbound-endpoint queueName="${queue.businessPaymentRequest}" exchange-pattern="one-way"
+                               connector-ref="amqpRabbitMQConnector"/>
+        <byte-array-to-string-transformer/>
+        <transformer ref="JsonToRequestMessage_BusinessPaymentRequest"/>
+        <set-variable variableName="requestPayload" value="#[payload]"/>
+        <flow-ref name="RetrieveUserInfo"/>
+
+        <choice>
+            <when expression="#[flowVars.authorized]">
+                <flow-ref name="GetUserByUserId"/>
+                <invoke object-ref="paymentService" method="checkRequestEligibilityToDoBusinessPayment"
+                        methodArguments="#[flowVars.user],#[payload.service.amount]"/>
+                <enricher target="#[flowVars.business]">
+                    <invoke object-ref="businessService" method="findBusinessByCode"
+                            methodArguments="#[payload.service.businessCode]"/>
+                </enricher>
+                <enricher target="#[variable:transaction]">
+                    <invoke object-ref="transactionService" method="createBusinessTransaction"
+                            methodArguments="#[flowVars.user],#[payload.service],#[flowVars.business]"/>
+                </enricher>
+
+                <flow-ref name="SendPaymentRequestToSwitchFlow"/>
+
+                <enricher target="#[payload]">
+                    <invoke object-ref="paymentResponseProvider" method="createBusinessPaymentResponse"
+                            methodArguments="#[flowVars.requestPayload.service.requestUUID],#[flowVars.transaction.reference]"/>
+                </enricher>
+            </when>
+            <otherwise>
+                <enricher target="#[payload]">
+                    <invoke object-ref="paymentResponseProvider" method="createAuthenticationFailureResponse"
+                            methodArguments="#[payload.service.requestUUID]"/>
+                </enricher>
+            </otherwise>
+        </choice>
+        <transformer ref="ResponseMessageToJson"/>
+        <amqp:outbound-endpoint connector-ref="amqpRabbitMQConnector" exchangeName="${exchange.bizPaymentResponse}"
+                                exchangeType="topic" exchangeDurable="true" routingKey="${core.routing.key}"/>
+        <exception-strategy ref="BusinessPaymentException"/>
+    </flow>
+
+    <flow name="IndividualPaymentRequestFlow">
+        <amqp:inbound-endpoint queueName="${queue.individualPaymentRequest}" exchange-pattern="one-way"
+                               connector-ref="amqpRabbitMQConnector"/>
+        <byte-array-to-string-transformer/>
+        <transformer ref="JsonToRequestMessage_IndividualPaymentRequest"/>
+        <set-variable variableName="requestPayload" value="#[payload]"/>
+
+        <flow-ref name="RetrieveUserInfo"/>
+
+        <choice>
+            <when expression="#[flowVars.authorized]">
+                <flow-ref name="GetUserByUserId"/>
+                <enricher target="#[variable:transaction]">
+                    <invoke object-ref="transactionService" method="createIndividualTransaction"
+                            methodArguments="#[flowVars.user],#[payload.service]"/>
+                </enricher>
+                <flow-ref name="SendPaymentRequestToSwitchFlow"/>
+                <invoke object-ref="paymentResponseProvider" method="createIndividualPaymentResponse"
+                        methodArguments="#[flowVars.requestPayload.service.requestUUID],#[flowVars.transaction.reference]"/>
+            </when>
+            <otherwise>
+                <enricher target="#[payload]">
+                    <invoke object-ref="paymentResponseProvider" method="createIndividualAuthenticationFailureResponse"
+                            methodArguments="#[payload.service.requestUUID]"/>
+                </enricher>
+            </otherwise>
+        </choice>
+        <transformer ref="ResponseMessageToJson"/>
+        <amqp:outbound-endpoint connector-ref="amqpRabbitMQConnector" exchangeName="${exchange.IndividualPayResponse}"
+                                exchangeType="topic" exchangeDurable="true" routingKey="${core.routing.key}"/>
+        <exception-strategy ref="IndividualPaymentException"/>
+    </flow>
+
+    <flow name="IndividualPaymentConfirmFlow">
+        <amqp:inbound-endpoint queueName="${queue.paymentConfirmRequest}" exchange-pattern="one-way"
+                               connector-ref="amqpRabbitMQConnector"/>
+        <byte-array-to-string-transformer/>
+        <transformer ref="JsonToRequestMessage_IndividualPaymentConfirmRequest"/>
+        <set-variable variableName="requestPayload" value="#[payload]"/>
+
+        <flow-ref name="RetrieveUserInfo"/>
+
+        <choice>
+            <when expression="#[flowVars.authorized]">
+                <flow-ref name="GetUserByUserId"/>
+                <invoke object-ref="paymentResponseProvider" method="createIndividualPaymentConfirmResponse"
+                        methodArguments="#[payload.service],#[flowVars.user]"/>
+            </when>
+            <otherwise>
+                <invoke object-ref="paymentResponseProvider"
+                        method="createIndividualConfirmAuthenticationFailureResponse"
+                        methodArguments="#[payload.service.requestUUID]"/>
+            </otherwise>
+        </choice>
+        <transformer ref="ResponseMessageToJson"/>
+        <amqp:outbound-endpoint connector-ref="amqpRabbitMQConnector"
+                                exchangeName="${exchange.individualPayConfirmResponse}"
+                                exchangeType="topic" exchangeDurable="true" routingKey="${core.routing.key}"/>
+        <exception-strategy ref="IndividualPaymentConfirmException"/>
+    </flow>
+
+    <flow name="BusinessPaymentConfirmFlow">
+        <amqp:inbound-endpoint queueName="${queue.businessPaymentConfirmRequest}" exchange-pattern="one-way"
+                               connector-ref="amqpRabbitMQConnector"/>
+        <byte-array-to-string-transformer/>
+        <transformer ref="JsonToRequestMessage_BusinessPaymentConfirmRequest"/>
+
+        <flow-ref name="RetrieveUserInfo"/>
+
+        <choice>
+            <when expression="#[flowVars.authorized]">
+                <flow-ref name="GetBusinessByCode"/>
+                <invoke object-ref="paymentResponseProvider" method="createBusinessPaymentConfirmResponse"
+                        methodArguments="#[payload.service],#[flowVars.business]"/>
+            </when>
+            <otherwise>
+                <invoke object-ref="paymentResponseProvider"
+                        method="createBusinessConfirmAuthenticationFailureResponse"
+                        methodArguments="#[payload.service.requestUUID]"/>
+            </otherwise>
+        </choice>
+        <transformer ref="ResponseMessageToJson"/>
+        <amqp:outbound-endpoint connector-ref="amqpRabbitMQConnector"
+                                exchangeName="${exchange.bizPaymentConfirmResponse}"
+                                exchangeType="topic" exchangeDurable="true" routingKey="${core.routing.key}"/>
+    </flow>
+
+    <sub-flow name="GetBusinessByCode">
+        <enricher target="#[variable:business]">
+            <invoke object-ref="businessService" method="findBusinessByCode"
+                    methodArguments="#[payload.service.businessCode]"/>
+        </enricher>
+    </sub-flow>
+
+
+</mule>

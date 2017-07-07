@@ -1,0 +1,208 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xsi:schemaLocation="
+      http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/3.5/mule.xsd
+      http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/3.5/mule-http.xsd">
+
+    <flow name="UserProfileFlow">
+        <byte-array-to-string-transformer/>
+        <logger message="UserProfile payload in flow entry : #[payload]" level="INFO"/>
+        <transformer ref="userProfileRequestTransformer"/>
+        <logger message="UserProfile payload requestUUID : #[payload.service.requestUUID]" level="INFO"/>
+        <set-variable variableName="authorized" value="#[true]"/>
+        <set-variable variableName="userId" value="#['123456']"/>
+
+        <choice>
+            <when expression="#[flowVars.authorized]">
+                <invoke object-ref="userProfileResponseBuilder" method="createUserProfileSuccessResponse"
+                        methodArguments="#[payload.service], #[flowVars.userId]"/>
+                <set-property propertyName="status" value="200"/>
+            </when>
+            <otherwise>
+                <invoke object-ref="userProfileResponseBuilder" method="createUserProfileFailureResponse"
+                        methodArguments="#[payload.service]"/>
+                <set-property propertyName="status" value="401"/>
+            </otherwise>
+        </choice>
+        <transformer ref="ResponseMessageToJson"/>
+        <logger message="UserProfile payload after transformation : #[payload]" level="INFO"/>
+        <set-property propertyName="Content-Type" value="application/json; charset=utf-8"/>
+    </flow>
+
+    <!-- After registration and login, any time user can change his pass code and we should generate new password with this new pass code and send to openam -->
+    <flow name="ChangePassCodeFlow">
+        <byte-array-to-string-transformer/>
+        <logger message="ChangePassCodeFlow payload in flow entry : #[payload]" level="INFO"/>
+        <transformer ref="changePassCodeRequestTransformer"/>
+        <logger message="ChangePassCodeFlow payload requestUUID : #[payload.service.requestUUID]" level="INFO"/>
+        <set-variable variableName="authorized" value="#[true]"/>
+        <set-variable variableName="userId" value="#['123456']"/>
+
+        <choice>
+            <when expression="#[flowVars.authorized]">
+                <invoke object-ref="userProfileResponseBuilder" method="createChangePassCodeSuccessResponse"
+                        methodArguments="#[payload.service], #[flowVars.userId]"/>
+                <set-property propertyName="status" value="200"/>
+            </when>
+            <otherwise>
+                <invoke object-ref="userProfileResponseBuilder" method="createChangePassCodeFailureResponse"
+                        methodArguments="#[payload.service]"/>
+                <set-property propertyName="status" value="401"/>
+            </otherwise>
+        </choice>
+        <transformer ref="ResponseMessageToJson"/>
+        <logger message="ChangePassCodeFlow payload after transformation : #[payload]" level="INFO"/>
+        <set-property propertyName="Content-Type" value="application/json; charset=utf-8"/>
+    </flow>
+
+    <!-- After registration and login, any time user can change his memorable word and we should generate new password with this new memorable word and send to openam -->
+    <flow name="ChangeMemorableWordFlow">
+        <byte-array-to-string-transformer/>
+        <logger message="ChangeMemorableWordFlow payload in flow entry : #[payload]" level="INFO"/>
+        <transformer ref="changeMemorableWordRequestTransformer"/>
+        <logger message="ChangeMemorableWordFlow payload requestUUID : #[payload.service.requestUUID]" level="INFO"/>
+        <set-variable variableName="authorized" value="#[true]"/>
+        <set-variable variableName="userId" value="#['123456']"/>
+
+        <choice>
+            <when expression="#[flowVars.authorized]">
+                <invoke object-ref="userProfileResponseBuilder" method="createChangeMemorableWordSuccessResponse"
+                        methodArguments="#[payload.service], #[flowVars.userId]"/>
+                <set-property propertyName="status" value="200"/>
+            </when>
+            <otherwise>
+                <invoke object-ref="userProfileResponseBuilder" method="createChangeMemorableWordFailureResponse"
+                        methodArguments="#[payload.service]"/>
+                <set-property propertyName="status" value="401"/>
+            </otherwise>
+        </choice>
+        <transformer ref="ResponseMessageToJson"/>
+        <logger message="ChangeMemorableWordFlow payload after transformation : #[payload]" level="INFO"/>
+        <set-property propertyName="Content-Type" value="application/json; charset=utf-8"/>
+    </flow>
+
+    <!-- After registration, user can request to verify his bank account number, and after completion of verification process, his verification status changes to verified from limited -->
+    <flow name="VerifyAccountFlow">
+        <byte-array-to-string-transformer/>
+        <logger message="VerifyAccountFlow payload in flow entry : #[payload]" level="INFO"/>
+        <transformer ref="verifyAccountRequestTransformer"/>
+        <logger message="VerifyAccountFlow payload requestUUID : #[payload.service.requestUUID]" level="INFO"/>
+        <set-variable variableName="authorized" value="#[true]"/>
+        <set-variable variableName="userId" value="#['123456']"/>
+
+        <choice>
+            <when expression="#[flowVars.authorized]">
+                <invoke object-ref="userProfileResponseBuilder" method="createVerifyAccountSuccessResponse"
+                        methodArguments="#[payload.service], #[flowVars.userId]"/>
+                <set-property propertyName="status" value="200"/>
+            </when>
+            <otherwise>
+                <invoke object-ref="userProfileResponseBuilder" method="createVerifyAccountFailureResponse"
+                        methodArguments="#[payload.service]"/>
+                <set-property propertyName="status" value="401"/>
+            </otherwise>
+        </choice>
+        <transformer ref="ResponseMessageToJson"/>
+        <logger message="VerifyAccountFlow payload after transformation : #[payload]" level="INFO"/>
+        <set-property propertyName="Content-Type" value="application/json; charset=utf-8"/>
+    </flow>
+
+    <!-- After user tranfered the requested money to Hampay account in account verification process, this flow should be called to verify the transfer money from Hampay Switch -->
+    <flow name="VerifyTransferMoneyFlow">
+        <byte-array-to-string-transformer/>
+        <logger message="VerifyTransferMoneyFlow payload in flow entry : #[payload]" level="INFO"/>
+        <transformer ref="verifyTransferMoneyRequestTransformer"/>
+        <logger message="VerifyTransferMoneyFlow payload requestUUID : #[payload.service.requestUUID]" level="INFO"/>
+        <set-variable variableName="authorized" value="#[true]"/>
+        <set-variable variableName="userId" value="#['123456']"/>
+
+        <choice>
+            <when expression="#[flowVars.authorized]">
+                <invoke object-ref="userProfileResponseBuilder" method="createVerifyTransferMoneySuccessResponse"
+                        methodArguments="#[payload.service], #[flowVars.userId]"/>
+                <set-property propertyName="status" value="200"/>
+            </when>
+            <otherwise>
+                <invoke object-ref="userProfileResponseBuilder" method="createVerifyTransferMoneyFailureResponse"
+                        methodArguments="#[payload.service]"/>
+                <set-property propertyName="status" value="401"/>
+            </otherwise>
+        </choice>
+        <transformer ref="ResponseMessageToJson"/>
+        <logger message="VerifyTransferMoneyFlow payload after transformation : #[payload]" level="INFO"/>
+        <set-property propertyName="Content-Type" value="application/json; charset=utf-8"/>
+    </flow>
+
+    <flow name="ContactsHampayEnabledFlow">
+        <transformer ref="inputStreamToByteArrayTransformer"/>
+        <gzip-uncompress-transformer returnClass="java.lang.String"/>
+        <logger message="ContactsHampayEnabled payload in flow entry : #[payload]" level="INFO"/>
+        <transformer ref="contactsHampayEnabledRequestTransformer"/>
+        <logger message="ContactsHampayEnabled payload requestUUID : #[payload.service.requestUUID]" level="INFO"/>
+        <set-variable variableName="authorized" value="#[true]"/>
+
+        <choice>
+            <when expression="#[flowVars.authorized]">
+                <invoke object-ref="userProfileResponseBuilder" method="createContactsHampayEnabledSuccessResponse"
+                        methodArguments="#[payload.service]"/>
+                <set-property propertyName="status" value="200"/>
+            </when>
+            <otherwise>
+                <invoke object-ref="userProfileResponseBuilder" method="createContactsHampayEnabledFailureResponse"
+                        methodArguments="#[payload.service]"/>
+                <set-property propertyName="status" value="401"/>
+            </otherwise>
+        </choice>
+        <transformer ref="ResponseMessageToJson"/>
+        <gzip-compress-transformer/>
+        <set-property propertyName="Content-Encoding" value="gzip"/>
+    </flow>
+
+    <flow name="getUserIdTokenFlow">
+        <byte-array-to-string-transformer/>
+        <logger message="UserProfile payload in flow entry : #[payload]" level="INFO"/>
+        <transformer ref="getUserIdTokenRequestTransformer"/>
+        <logger message="UserProfile payload requestUUID : #[payload.service.requestUUID]" level="INFO"/>
+        <set-variable variableName="authorized" value="#[true]"/>
+
+        <choice>
+            <when expression="#[flowVars.authorized]">
+                <invoke object-ref="userProfileResponseBuilder" method="createGetUserIdTokenSuccessResponse"
+                        methodArguments="#[payload.service]"/>
+                <set-property propertyName="status" value="200"/>
+            </when>
+            <otherwise>
+                <logger level="INFO" message="Request failed"/>
+            </otherwise>
+        </choice>
+        <transformer ref="ResponseMessageToJson"/>
+        <logger message="UserProfile payload after transformation : #[payload]" level="INFO"/>
+        <set-property propertyName="Content-Type" value="application/json; charset=utf-8"/>
+    </flow>
+
+    <flow name="UnlinkUserFlow">
+        <byte-array-to-string-transformer/>
+        <logger message="UserProfile payload in flow entry : #[payload]" level="INFO"/>
+        <transformer ref="unlinkUserRequestTransformer"/>
+        <set-variable variableName="authorized" value="#[true]"/>
+
+        <choice>
+            <when expression="#[flowVars.authorized]">
+                <invoke object-ref="userProfileResponseBuilder" method="createUnlinkUserSuccessResponse"
+                        methodArguments="#[payload.service]"/>
+                <set-property propertyName="status" value="200"/>
+            </when>
+            <otherwise>
+                <logger level="INFO" message="Request failed"/>
+            </otherwise>
+        </choice>
+        <transformer ref="ResponseMessageToJson"/>
+        <set-property propertyName="Content-Type" value="application/json; charset=utf-8"/>
+    </flow>
+
+
+</mule>

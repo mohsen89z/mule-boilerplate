@@ -1,0 +1,271 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xsi:schemaLocation="
+      http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/3.5/mule.xsd
+      http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/3.5/mule-http.xsd">
+
+    <!-- Registration entry, user enters his cell number, account number, bank and national code and submits request -->
+    <flow name="RegistrationEntryFlow">
+        <transformer ref="inputStreamToByteArrayTransformer"/>
+        <gzip-uncompress-transformer returnClass="java.lang.String"/>
+        <logger message="RegistrationEntryFlow payload in flow entry : #[payload]" level="INFO"/>
+        <transformer ref="registrationEntryRequestTransformer"/>
+        <logger message="RegistrationEntryFlow payload requestUUID : #[payload.service.requestUUID]" level="INFO"/>
+        <set-variable variableName="authorized" value="#[true]"/>
+
+        <choice>
+            <when expression="#[flowVars.authorized]">
+                <invoke object-ref="registrationResponseBuilder" method="createEntrySuccessResponse"
+                        methodArguments="#[payload.service]"/>
+                <set-property propertyName="status" value="200"/>
+            </when>
+            <otherwise>
+                <invoke object-ref="registrationResponseBuilder" method="createEntryFailureResponse"
+                        methodArguments="#[payload.service]"/>
+                <set-property propertyName="status" value="401"/>
+            </otherwise>
+        </choice>
+        <transformer ref="ResponseMessageToJson"/>
+        <gzip-compress-transformer/>
+        <set-property propertyName="Content-Encoding" value="gzip"/>
+        <logger message="RegistrationEntryFlow payload after transformation : #[payload]" level="INFO"/>
+    </flow>
+
+    <!-- Registration send sms token, application requests a sms token to verify user cell number. This flow should send a sms to user's mobile device -->
+    <flow name="RegistrationSendSmsTokenFlow">
+        <byte-array-to-string-transformer/>
+        <logger message="RegistrationSendSmsTokenFlow payload in flow entry : #[payload]" level="INFO"/>
+        <transformer ref="registrationSendSmsTokenRequestTransformer"/>
+        <logger message="RegistrationSendSmsTokenFlow payload requestUUID : #[payload.service.requestUUID]"
+                level="INFO"/>
+        <set-variable variableName="authorized" value="#[true]"/>
+
+        <choice>
+            <when expression="#[flowVars.authorized]">
+                <invoke object-ref="registrationResponseBuilder" method="createSendSmsTokenSuccessResponse"
+                        methodArguments="#[payload.service]"/>
+                <set-property propertyName="status" value="200"/>
+            </when>
+            <otherwise>
+                <invoke object-ref="registrationResponseBuilder" method="createSendSmsTokenFailureResponse"
+                        methodArguments="#[payload.service]"/>
+                <set-property propertyName="status" value="401"/>
+            </otherwise>
+        </choice>
+        <transformer ref="ResponseMessageToJson"/>
+        <logger message="RegistrationSendSmsTokenFlow payload after transformation : #[payload]" level="INFO"/>
+        <set-property propertyName="Content-Type" value="application/json; charset=utf-8"/>
+    </flow>
+
+    <!-- Registration verify mobile, application submits the sms token entered by user to verify user cell number -->
+    <flow name="RegistrationVerifyMobileFlow">
+        <byte-array-to-string-transformer/>
+        <logger message="RegistrationVerifyMobileSubFlow payload in flow entry : #[payload]" level="INFO"/>
+
+        <transformer ref="registrationVerifyMobileRequestTransformer"/>
+        <logger message="RegistrationVerifyMobileSubFlow payload requestUUID : #[payload.service.requestUUID]"
+                level="INFO"/>
+        <set-variable variableName="authorized" value="#[true]"/>
+
+        <choice>
+            <when expression="#[flowVars.authorized]">
+                <invoke object-ref="registrationResponseBuilder" method="createVerifyMobileSuccessResponse"
+                        methodArguments="#[payload.service]"/>
+                <set-property propertyName="status" value="200"/>
+            </when>
+            <otherwise>
+                <invoke object-ref="registrationResponseBuilder" method="createVerifyMobileFailureResponse"
+                        methodArguments="#[payload.service]"/>
+                <set-property propertyName="status" value="401"/>
+            </otherwise>
+        </choice>
+        <transformer ref="ResponseMessageToJson"/>
+        <logger message="RegistrationVerifyMobileSubFlow payload after transformation : #[payload]" level="INFO"/>
+        <set-property propertyName="Content-Type" value="application/json; charset=utf-8"/>
+
+    </flow>
+
+    <flow name="RegistrationAccountInfoFlow">
+        <byte-array-to-string-transformer/>
+        <logger message="RegistrationAccountInfoFlow payload in flow entry : #[payload]" level="INFO"/>
+
+        <transformer ref="registrationAccountInfoRequestTransformer"/>
+        <logger message="RegistrationAccountInfoFlow payload requestUUID : #[payload.service.requestUUID]"
+                level="INFO"/>
+        <set-variable variableName="authorized" value="#[true]"/>
+
+        <choice>
+            <when expression="#[flowVars.authorized]">
+                <invoke object-ref="registrationResponseBuilder" method="createAccountInfoSuccessResponse"
+                        methodArguments="#[payload.service]"/>
+                <set-property propertyName="status" value="200"/>
+            </when>
+            <otherwise>
+                <invoke object-ref="registrationResponseBuilder" method="createAccountInfoFailureResponse"
+                        methodArguments="#[payload.service]"/>
+                <set-property propertyName="status" value="401"/>
+            </otherwise>
+        </choice>
+        <transformer ref="ResponseMessageToJson"/>
+        <logger message="RegistrationAccountInfoFlow payload after transformation : #[payload]" level="INFO"/>
+        <set-property propertyName="Content-Type" value="application/json; charset=utf-8"/>
+
+    </flow>
+
+    <flow name="RegistrationVerifyAccountFlow">
+        <byte-array-to-string-transformer/>
+        <logger message="RegistrationVerifyAccountFlow payload in flow entry : #[payload]" level="INFO"/>
+
+        <transformer ref="registrationVerifyAccountRequestTransformer"/>
+        <logger message="RegistrationVerifyAccountFlow payload requestUUID : #[payload.service.requestUUID]"
+                level="INFO"/>
+        <set-variable variableName="authorized" value="#[true]"/>
+
+        <choice>
+            <when expression="#[flowVars.authorized]">
+                <invoke object-ref="registrationResponseBuilder" method="createVerifyAccountSuccessResponse"
+                        methodArguments="#[payload.service]"/>
+                <set-property propertyName="status" value="200"/>
+            </when>
+            <otherwise>
+                <invoke object-ref="registrationResponseBuilder" method="createVerifyAccountFailureResponse"
+                        methodArguments="#[payload.service]"/>
+                <set-property propertyName="status" value="401"/>
+            </otherwise>
+        </choice>
+        <transformer ref="ResponseMessageToJson"/>
+        <logger message="RegistrationVerifyAccountFlow payload after transformation : #[payload]" level="INFO"/>
+        <set-property propertyName="Content-Type" value="application/json; charset=utf-8"/>
+
+    </flow>
+
+    <flow name="RegistrationVerifyTransferMoneyFlow">
+        <byte-array-to-string-transformer/>
+        <transformer ref="registrationTransferMoneyRequestTransformer"/>
+        <set-variable variableName="authorized" value="#[true]"/>
+
+        <choice>
+            <when expression="#[flowVars.authorized]">
+                <invoke object-ref="registrationResponseBuilder" method="createVerifyTransferMoneySuccessResponse"
+                        methodArguments="#[payload.service]"/>
+                <set-property propertyName="status" value="200"/>
+            </when>
+            <otherwise>
+                <invoke object-ref="registrationResponseBuilder" method="createVerifyTransferMoneyFailureResponse"
+                        methodArguments="#[payload.service]"/>
+                <set-property propertyName="status" value="401"/>
+            </otherwise>
+        </choice>
+        <transformer ref="ResponseMessageToJson"/>
+        <set-property propertyName="Content-Type" value="application/json; charset=utf-8"/>
+
+    </flow>
+
+    <flow name="CredentialFlow">
+        <transformer ref="inputStreamToByteArrayTransformer"/>
+        <gzip-uncompress-transformer returnClass="java.lang.String"/>
+        <transformer ref="registrationCredentialsRequestTransformer"/>
+        <set-variable variableName="authorized" value="#[true]"/>
+        <choice>
+            <when expression="#[flowVars.authorized]">
+                <invoke object-ref="registrationResponseBuilder" method="createCredentialSuccessResponse"
+                        methodArguments="#[payload.service]"/>
+                <set-property propertyName="status" value="200"/>
+            </when>
+            <otherwise>
+                <logger level="INFO" message="Failed"/>
+            </otherwise>
+        </choice>
+        <transformer ref="ResponseMessageToJson"/>
+        <gzip-compress-transformer/>
+        <set-property propertyName="Content-Encoding" value="gzip"/>
+    </flow>
+
+    <!-- Registration fetch user data, application requests user data based on userIdToken, to confirm user identity -->
+    <flow name="RegistrationFetchUserDataFlow">
+        <byte-array-to-string-transformer/>
+        <logger message="RegistrationFetchUserDataFlow payload in flow entry : #[payload]" level="INFO"/>
+
+        <transformer ref="registrationFetchUserDataRequestTransformer"/>
+        <logger message="RegistrationFetchUserDataFlow payload requestUUID : #[payload.service.requestUUID]"
+                level="INFO"/>
+        <set-variable variableName="authorized" value="#[true]"/>
+
+        <choice>
+            <when expression="#[flowVars.authorized]">
+                <invoke object-ref="registrationResponseBuilder" method="createFetchUserDataSuccessResponse"
+                        methodArguments="#[payload.service]"/>
+                <set-property propertyName="status" value="200"/>
+            </when>
+            <otherwise>
+                <invoke object-ref="registrationResponseBuilder" method="createFetchUserDataFailureResponse"
+                        methodArguments="#[payload.service]"/>
+                <set-property propertyName="status" value="401"/>
+            </otherwise>
+        </choice>
+        <transformer ref="ResponseMessageToJson"/>
+        <logger message="RegistrationFetchUserDataFlow payload after transformation : #[payload]" level="INFO"/>
+        <set-property propertyName="Content-Type" value="application/json; charset=utf-8"/>
+
+    </flow>
+
+    <!-- Registration confirm user data, application sends identity confirmation request based on userIdToken, and server should log user data and confirmation date -->
+    <flow name="RegistrationConfirmUserDataFlow">
+        <byte-array-to-string-transformer/>
+        <logger message="RegistrationConfirmUserDataFlow payload in flow entry : #[payload]" level="INFO"/>
+
+        <transformer ref="registrationConfirmUserDataRequestTransformer"/>
+        <logger message="RegistrationConfirmUserDataFlow payload requestUUID : #[payload.service.requestUUID]"
+                level="INFO"/>
+        <set-variable variableName="authorized" value="#[true]"/>
+
+        <choice>
+            <when expression="#[flowVars.authorized]">
+                <invoke object-ref="registrationResponseBuilder" method="createConfirmUserDataSuccessResponse"
+                        methodArguments="#[payload.service]"/>
+                <set-property propertyName="status" value="200"/>
+            </when>
+            <otherwise>
+                <invoke object-ref="registrationResponseBuilder" method="createConfirmUserDataFailureResponse"
+                        methodArguments="#[payload.service]"/>
+                <set-property propertyName="status" value="401"/>
+            </otherwise>
+        </choice>
+        <transformer ref="ResponseMessageToJson"/>
+        <logger message="RegistrationConfirmUserDataFlow payload after transformation : #[payload]" level="INFO"/>
+        <set-property propertyName="Content-Type" value="application/json; charset=utf-8"/>
+
+    </flow>
+
+
+    <flow name="RegistrationCredentialsFlow">
+        <byte-array-to-string-transformer/>
+        <logger message="RegistrationCredentialsFlow payload in flow entry : #[payload]" level="INFO"/>
+
+        <transformer ref="registrationCredentialsRequestTransformer"/>
+        <logger message="RegistrationCredentialsFlow payload requestUUID : #[payload.service.requestUUID]"
+                level="INFO"/>
+        <set-variable variableName="authorized" value="#[true]"/>
+
+        <choice>
+            <when expression="#[flowVars.authorized]">
+                <invoke object-ref="registrationResponseBuilder" method="createCredentialsSuccessResponse"
+                        methodArguments="#[payload.service]"/>
+                <set-property propertyName="status" value="200"/>
+            </when>
+            <otherwise>
+                <invoke object-ref="registrationResponseBuilder" method="createCredentialsFailureResponse"
+                        methodArguments="#[payload.service]"/>
+                <set-property propertyName="status" value="401"/>
+            </otherwise>
+        </choice>
+        <transformer ref="ResponseMessageToJson"/>
+        <logger message="RegistrationCredentialsFlow payload after transformation : #[payload]" level="INFO"/>
+        <set-property propertyName="Content-Type" value="application/json; charset=utf-8"/>
+
+    </flow>
+
+</mule>

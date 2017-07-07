@@ -1,0 +1,251 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns:amqp="http://www.mulesoft.org/schema/mule/amqp"
+      xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/3.5/mule.xsd
+      http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/3.5/mule-http.xsd
+
+      http://www.mulesoft.org/schema/mule/amqp http://www.mulesoft.org/schema/mule/amqp/3.3/mule-amqp.xsd">
+
+
+    <flow name="ChangePasscodeFlow">
+        <amqp:inbound-endpoint queueName="${queue.changePasscodeRequest}" exchange-pattern="one-way"
+                               connector-ref="amqpRabbitMQConnector"/>
+        <byte-array-to-string-transformer/>
+        <transformer ref="JsonToRequestMessage_ChangePassCodeRequest"/>
+
+        <set-variable variableName="requestPayload" value="#[payload]"/>
+        <flow-ref name="RetrieveUserInfo"/>
+
+        <choice>
+            <when expression="#[flowVars.authorized]">
+                <flow-ref name="GetUserByUserId"/>
+                <set-variable variableName="idpToken" value="#[payload.requestHeader.authToken]"/>
+                <set-variable variableName="username" value="#[flowVars.user.userId]"/>
+                <enricher target="#[variable:currentPassword]">
+                    <invoke object-ref="securityAlgorithms" method="generatePassword"
+                            methodArguments="#[payload.service.memorableCode],#[payload.service.currentPassCode],#[flowVars.user]"/>
+                </enricher>
+                <enricher target="#[variable:newPassword]">
+                    <invoke object-ref="securityAlgorithms" method="generatePassword"
+                            methodArguments="#[payload.service.memorableCode],#[payload.service.newPassCode],#[flowVars.user]"/>
+                </enricher>
+                <flow-ref name="ChangePasswordIdentityProvider"/>
+                <choice>
+                    <when expression="#[flowVars.idpStatus == 200]">
+                        <enricher target="#[payload]">
+                            <invoke object-ref="securityResponseProvider"
+                                    method="createSuccessChangePassCodeResponse"
+                                    methodArguments="#[payload.service]"/>
+                        </enricher>
+                    </when>
+                    <otherwise>
+                        <choice>
+                            <when expression="#[flowVars.idpStatus == 400]">
+                                <invoke object-ref="securityResponseProvider"
+                                        method="createInvalidPasscodeFailureResponseForChangePassCode"
+                                        methodArguments="#[payload.service.requestUUID]"/>
+                            </when>
+                            <otherwise>
+                                <invoke object-ref="securityResponseProvider"
+                                        method="createFailedChangePassCodeResponse"
+                                        methodArguments="#[payload.service]"/>
+                            </otherwise>
+                        </choice>
+                    </otherwise>
+                </choice>
+            </when>
+            <otherwise>
+                <enricher target="#[payload]">
+                    <invoke object-ref="securityResponseProvider"
+                            method="createAuthenticationFailureChangePassCodeResponse"
+                            methodArguments="#[payload.service.requestUUID]"/>
+                </enricher>
+            </otherwise>
+        </choice>
+        <transformer ref="ResponseMessageToJson"/>
+        <amqp:outbound-endpoint connector-ref="amqpRabbitMQConnector" exchangeName="${exchange.changePassResponse}"
+                                exchangeType="topic" exchangeDurable="true" routingKey="${core.routing.key}"/>
+        <exception-strategy ref="ChangePassCodeException"/>
+    </flow>
+
+    <flow name="ChangeMemorableWordFlow">
+        <amqp:inbound-endpoint queueName="${queue.changeMemorableWordRequest}" exchange-pattern="one-way"
+                               connector-ref="amqpRabbitMQConnector"/>
+        <byte-array-to-string-transformer/>
+        <transformer ref="JsonToRequestMessage_ChangeMemorableWordRequest"/>
+        <set-variable variableName="requestPayload" value="#[payload]"/>
+        <flow-ref name="RetrieveUserInfo"/>
+
+        <choice>
+            <when expression="#[flowVars.authorized]">
+                <flow-ref name="GetUserByUserId"/>
+
+                <enricher target="#[variable:memorableWordAllowed]">
+                    <invoke object-ref="securityService" method="checkMemorableWord"
+                            methodArguments="#[payload.service.newMemorableWord]"/>
+                </enricher>
+                <choice>
+                    <when expression="#[flowVars.memorableWordAllowed]">
+                        <set-variable variableName="idpToken" value="#[payload.requestHeader.authToken]"/>
+                        <set-variable variableName="username" value="#[flowVars.user.userId]"/>
+                        <enricher target="#[variable:currentPassword]">
+                            <invoke object-ref="securityAlgorithms" method="generatePassword"
+                                    methodArguments="#[payload.service.currentMemorableWord],#[payload.service.passCode],#[flowVars.user]"/>
+                        </enricher>
+                        <enricher target="#[variable:newPassword]">
+                            <invoke object-ref="securityAlgorithms" method="generatePassword"
+                                    methodArguments="#[payload.service.newMemorableWord],#[payload.service.passCode],#[flowVars.user]"/>
+                        </enricher>
+                        <flow-ref name="ChangePasswordIdentityProvider"/>
+                        <choice>
+                            <when expression="#[flowVars.idpStatus == 200]">
+                                <enricher target="#[payload]">
+                                    <invoke object-ref="securityResponseProvider"
+                                            method="createSuccessChangeMemorableWordResponse"
+                                            methodArguments="#[payload.service]"/>
+                                </enricher>
+                            </when>
+                            <otherwise>
+                                <choice>
+                                    <when expression="#[flowVars.idpStatus == 400]">
+                                        <invoke object-ref="securityResponseProvider"
+                                                method="createInvalidPasscodeForChangeMemorableWordResponse"
+                                                methodArguments="#[payload.service.requestUUID]"/>
+                                    </when>
+                                    <otherwise>
+                                        <invoke object-ref="securityResponseProvider"
+                                                method="createFailedChangeMemorableWordResponse"
+                                                methodArguments="#[payload.service.requestUUID]"/>
+                                    </otherwise>
+                                </choice>
+                            </otherwise>
+                        </choice>
+                    </when>
+                    <otherwise>
+                        <enricher target="#[payload]">
+                            <invoke object-ref="securityResponseProvider"
+                                    method="createInvalidMemorableWordForChangeMemorableWordResponse"
+                                    methodArguments="#[payload.service]"/>
+                        </enricher>
+                    </otherwise>
+                </choice>
+            </when>
+            <otherwise>
+                <enricher target="#[payload]">
+                    <invoke object-ref="securityResponseProvider"
+                            method="createAuthenticationFailureChangeMemorableWordResponse"
+                            methodArguments="#[payload.service.requestUUID]"/>
+                </enricher>
+            </otherwise>
+        </choice>
+        <transformer ref="ResponseMessageToJson"/>
+        <amqp:outbound-endpoint connector-ref="amqpRabbitMQConnector" exchangeName="${exchange.changeMemWordResponse}"
+                                exchangeType="topic" exchangeDurable="true" routingKey="${core.routing.key}"/>
+        <exception-strategy ref="ChangeMemWordException"/>
+    </flow>
+
+    <flow name="UnlinkUserFlow">
+        <amqp:inbound-endpoint queueName="${queue.unlinkUserRequest}" exchange-pattern="one-way"
+                               connector-ref="amqpRabbitMQConnector"/>
+        <byte-array-to-string-transformer/>
+        <transformer ref="unlinkUserRequestTransformer"/>
+        <set-variable variableName="requestPayload" value="#[payload]"/>
+        <flow-ref name="RetrieveUserInfo"/>
+        <choice>
+            <when expression="#[flowVars.authorized]">
+                <flow-ref name="GetUserByUserId"/>
+                <enricher target="#[variable:password]">
+                    <invoke object-ref="securityAlgorithms" method="generatePassword"
+                            methodArguments="#[payload.service.memorableWord],#[payload.service.passCode],#[flowVars.user]"/>
+                </enricher>
+                <set-variable variableName="username" value="#[flowVars.user.userId]"/>
+                <flow-ref name="LoginUserToIdentityProvider"/>
+                <choice>
+                    <when expression="#[flowVars.idpStatus == 200]">
+                        <invoke object-ref="userService" method="unlinkUser"
+                                methodArguments="#[flowVars.user]"/>
+                        <flow-ref name="LoginToIdentityProvider"/>
+                        <flow-ref name="DeleteUserFromIdentityProvider"/>
+                        <choice>
+                            <when expression="#[flowVars.idpStatus == 200]">
+                                <invoke object-ref="securityResponseProvider"
+                                        method="createSuccessUnlinkUserResponse"
+                                        methodArguments="#[payload.service.requestUUID]"/>
+                            </when>
+                            <otherwise>
+                                <invoke object-ref="userService" method="linkUser"
+                                        methodArguments="#[flowVars.user]"/>
+                                <invoke object-ref="securityResponseProvider"
+                                        method="createFailureUnlinkUserResponse"
+                                        methodArguments="#[payload.service.requestUUID]"/>
+                            </otherwise>
+                        </choice>
+
+                    </when>
+                    <otherwise>
+                        <invoke object-ref="securityResponseProvider"
+                                method="createInvalidPasscodeForUnlinkUserResponse"
+                                methodArguments="#[payload.service.requestUUID]"/>
+                    </otherwise>
+                </choice>
+            </when>
+            <otherwise>
+                <invoke object-ref="securityResponseProvider"
+                        method="createAuthenticationFailureUnlinkUserResponse"
+                        methodArguments="#[payload.service.requestUUID]"/>
+            </otherwise>
+        </choice>
+        <transformer ref="ResponseMessageToJson"/>
+        <amqp:outbound-endpoint connector-ref="amqpRabbitMQConnector" exchangeName="${exchange.unlinkUserResponse}"
+                                exchangeType="topic" exchangeDurable="true" routingKey="${core.routing.key}"/>
+        <exception-strategy ref="UnlinkUserException"/>
+    </flow>
+
+
+    <sub-flow name="RetrieveUserInfo">
+        <choice>
+            <when expression="#[payload.requestHeader.authToken == null]">
+                <set-variable variableName="authorized" value="#[false]"/>
+                <set-property propertyName="status" value="401"/>
+            </when>
+            <otherwise>
+                <set-variable variableName="idpToken" value="#[payload.requestHeader.authToken]"/>
+                <flow-ref name="GetUserByToken"/>
+                <choice>
+                    <when expression="#[flowVars.idpStatus == 200]">
+                        <enricher target="#[variable:idpUserInfo]">
+                            <processor-chain>
+                                <set-payload value="#[flowVars.idpUser]"/>
+                                <transformer ref="JsonToIdpUserValidity"/>
+                            </processor-chain>
+                        </enricher>
+                        <choice>
+                            <when expression="#[flowVars.idpUserInfo.valid]">
+                                <set-variable variableName="authorized" value="#[true]"/>
+                                <enricher target="#[variable:currentUser]">
+                                    <invoke object-ref="securityService" method="createUserDTOFromIdp"
+                                            methodArguments="#[flowVars.idpUserInfo]"/>
+                                </enricher>
+                                <logger level="INFO" message="Retrieve User Info #[flowVars.currentUser.userId]"/>
+                                <logger level="INFO" message="Retrieve User Info #[flowVars.currentUser.valid]"/>
+                            </when>
+                            <otherwise>
+                                <set-variable variableName="authorized" value="#[false]"/>
+                                <set-property propertyName="status" value="401"/>
+                            </otherwise>
+                        </choice>
+
+
+                    </when>
+                    <otherwise>
+                        <set-variable variableName="authorized" value="#[false]"/>
+                        <set-property propertyName="status" value="401"/>
+                    </otherwise>
+                </choice>
+            </otherwise>
+        </choice>
+    </sub-flow>
+</mule>

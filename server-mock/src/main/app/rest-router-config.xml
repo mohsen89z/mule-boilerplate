@@ -1,0 +1,220 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns:rest-router="http://www.mulesoft.org/schema/mule/rest-router"
+      xsi:schemaLocation="
+      http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/3.5/mule.xsd
+      http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/3.5/mule-http.xsd
+      http://www.mulesoft.org/schema/mule/rest-router http://www.mulesoft.org/schema/mule/rest-router/current/mule-rest-router.xsd">
+
+    <rest-router:config/>
+
+    <flow name="MockRestFlow" doc:name="Mock REST Flow">
+
+        <http:inbound-endpoint exchange-pattern="request-response"
+                               host="0.0.0.0" port="9093"
+                               doc:name="Mock REST endpoint"/>
+        <flow-ref name="CopyHeaders"/>
+
+        <!-- Contact Us Flow -->
+        <rest-router:router templateUri="/hampay/contactus">
+            <rest-router:post>
+                <flow-ref name="ContactUsFlow"/>
+            </rest-router:post>
+        </rest-router:router>
+
+        <!-- Credential Word Flow -->
+        <rest-router:router templateUri="/hampay/users/reg-credential-entry">
+            <rest-router:post>
+                <flow-ref name="CredentialFlow"/>
+            </rest-router:post>
+        </rest-router:router>
+
+        <!-- Bank List Flow -->
+        <rest-router:router templateUri="/hampay/banks">
+            <rest-router:post>
+                <flow-ref name="BankListFlow"/>
+            </rest-router:post>
+        </rest-router:router>
+
+        <!-- Registration Entry Flow -->
+        <rest-router:router templateUri="/hampay/users/reg-entry">
+            <rest-router:post>
+                <flow-ref name="RegistrationEntryFlow"/>
+            </rest-router:post>
+        </rest-router:router>
+
+        <!-- Registration Send Sms Token Flow -->
+        <rest-router:router templateUri="/hampay/users/reg-sms-token">
+            <rest-router:post>
+                <flow-ref name="RegistrationSendSmsTokenFlow"/>
+            </rest-router:post>
+        </rest-router:router>
+
+        <!-- Registration Verify Mobile Flow -->
+        <rest-router:router templateUri="/hampay/users/reg-verify-mobile">
+            <rest-router:post>
+                <flow-ref name="RegistrationVerifyMobileFlow"/>
+            </rest-router:post>
+        </rest-router:router>
+
+        <!-- Registration Fetch User Data Flow -->
+        <rest-router:router templateUri="/hampay/users/reg-fetch-user-data">
+            <rest-router:post>
+                <flow-ref name="RegistrationFetchUserDataFlow"/>
+            </rest-router:post>
+        </rest-router:router>
+
+        <!-- Registration Confirm User Data Flow -->
+        <rest-router:router templateUri="/hampay/users/reg-confirm-user-data">
+            <rest-router:post>
+                <flow-ref name="RegistrationConfirmUserDataFlow"/>
+            </rest-router:post>
+        </rest-router:router>
+
+        <!-- User Profile Flow -->
+        <rest-router:router templateUri="/hampay/users/profile">
+            <rest-router:post>
+                <flow-ref name="UserProfileFlow"/>
+            </rest-router:post>
+        </rest-router:router>
+
+        <!-- T&C Flow -->
+        <rest-router:router templateUri="/hampay/users/tac">
+            <rest-router:post>
+                <flow-ref name="TACFlow"/>
+            </rest-router:post>
+        </rest-router:router>
+        <rest-router:router templateUri="/hampay/users/tacaccept">
+            <rest-router:post>
+                <flow-ref name="TACAcceptFlow"/>
+            </rest-router:post>
+        </rest-router:router>
+
+        <!-- Verify Account Flow -->
+        <rest-router:router templateUri="/hampay/customers/verify-account">
+            <rest-router:post>
+                <flow-ref name="VerifyAccountFlow"/>
+            </rest-router:post>
+        </rest-router:router>
+
+        <!-- Verify Transfer Money Flow -->
+        <rest-router:router templateUri="/hampay/customers/verify-xfer">
+            <rest-router:post>
+                <flow-ref name="VerifyTransferMoneyFlow"/>
+            </rest-router:post>
+        </rest-router:router>
+
+        <!-- Individual Payment Confirm Flow -->
+        <rest-router:router templateUri="/hampay/customers/individual-payment-confirm">
+            <rest-router:post>
+                <flow-ref name="IndividualPaymentConfirmFlow"/>
+            </rest-router:post>
+        </rest-router:router>
+        <!-- Individual Payment Flow -->
+        <rest-router:router templateUri="/hampay/customers/individual-payment">
+            <rest-router:post>
+                <flow-ref name="IndividualPaymentFlow"/>
+            </rest-router:post>
+        </rest-router:router>
+
+        <!-- Business Payment Confirm Flow -->
+        <rest-router:router templateUri="/hampay/businesses/business-payment-confirm">
+            <rest-router:post>
+                <flow-ref name="BusinessPaymentConfirmFlow"/>
+            </rest-router:post>
+        </rest-router:router>
+        <!-- Business Payment Flow -->
+        <rest-router:router templateUri="/hampay/customers/business-payment">
+            <rest-router:post>
+                <flow-ref name="BusinessPaymentFlow"/>
+            </rest-router:post>
+        </rest-router:router>
+
+        <!-- Contacts Hampay Enabled Flow -->
+        <rest-router:router templateUri="/hampay/customer/contacts/hp-enabled">
+            <rest-router:post>
+                <flow-ref name="ContactsHampayEnabledFlow"/>
+            </rest-router:post>
+        </rest-router:router>
+
+        <!-- Business List Flow -->
+        <rest-router:router templateUri="/hampay/businesses">
+            <rest-router:post>
+                <flow-ref name="BusinessListFlow"/>
+            </rest-router:post>
+        </rest-router:router>
+
+        <!-- Transaction List Flow -->
+        <rest-router:router templateUri="/hampay/transactions">
+            <rest-router:post>
+                <flow-ref name="TransactionListFlow"/>
+            </rest-router:post>
+        </rest-router:router>
+
+        <!-- Business Search Flow -->
+        <rest-router:router templateUri="/hampay/search">
+            <rest-router:post>
+                <flow-ref name="BusinessSearchFlow"/>
+            </rest-router:post>
+        </rest-router:router>
+
+        <!-- Registration Verify Account-->
+        <rest-router:router templateUri="/hampay/customers/reg-verify-account">
+            <rest-router:post>
+                <flow-ref name="RegistrationVerifyAccountFlow"/>
+            </rest-router:post>
+        </rest-router:router>
+
+        <!-- Registration Verify Transfer Money-->
+        <rest-router:router templateUri="/hampay/customers/reg-verify-xfer">
+            <rest-router:post>
+                <flow-ref name="RegistrationVerifyTransferMoneyFlow"/>
+            </rest-router:post>
+        </rest-router:router>
+
+        <rest-router:router templateUri="/hampay/users/get-user-id-token">
+            <rest-router:post>
+                <flow-ref name="getUserIdTokenFlow"/>
+            </rest-router:post>
+
+        </rest-router:router>
+
+        <rest-router:router templateUri="/hampay/illegal-apps">
+            <rest-router:post>
+                <flow-ref name="IllegalAppListFlow"/>
+            </rest-router:post>
+        </rest-router:router>
+
+        <rest-router:router templateUri="/hampay/users/unlink">
+            <rest-router:post>
+                <flow-ref name="UnlinkUserFlow"/>
+            </rest-router:post>
+        </rest-router:router>
+
+        <rest-router:router templateUri="/hampay/events">
+            <rest-router:post>
+                <flow-ref name="EventListFlow"/>
+            </rest-router:post>
+        </rest-router:router>
+
+        <rest-router:router templateUri="/hampay/users/passcode">
+            <rest-router:put>
+                <flow-ref name="ChangePasscodeFlow"/>
+            </rest-router:put>
+        </rest-router:router>
+
+        <rest-router:router templateUri="/hampay/users/memorable-word">
+            <rest-router:put>
+                <flow-ref name="ChangeMemWordFlow"/>
+            </rest-router:put>
+        </rest-router:router>
+
+
+
+    </flow>
+
+</mule>

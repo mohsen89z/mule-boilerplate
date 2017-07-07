@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <parent>
+        <groupId>xyz.homapay.hampay.core</groupId>
+        <artifactId>hampay-core</artifactId>
+        <version>2.0.0-SNAPSHOT</version>
+    </parent>
+    <modelVersion>4.0.0</modelVersion>
+    <artifactId>core-common</artifactId>
+    <version>2.0.0-SNAPSHOT</version>
+    <packaging>jar</packaging>
+
+    <dependencies>
+        <dependency>
+            <groupId>xyz.homapay.hampay.common</groupId>
+            <artifactId>common-core</artifactId>
+            <version>${hampay.common.core.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>xyz.homapay.hampay.common</groupId>
+            <artifactId>common-switch</artifactId>
+            <version>${hampay.common.switch.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>xyz.homapay.hampay.common</groupId>
+            <artifactId>common-common</artifactId>
+            <version>${hampay.common.common.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.mongodb.morphia</groupId>
+            <artifactId>morphia</artifactId>
+            <version>${morphia.version}</version>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.1</version>
+                <configuration>
+                    <source>1.7</source>
+                    <target>1.7</target>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+    <properties>
+        <morphia.version>0.109</morphia.version>
+        <hampay.common.switch.version>2.0.0-SNAPSHOT</hampay.common.switch.version>
+        <hampay.common.core.version>2.0.0-SNAPSHOT</hampay.common.core.version>
+        <hampay.common.common.version>2.0.0-SNAPSHOT</hampay.common.common.version>
+    </properties>
+
+</project>

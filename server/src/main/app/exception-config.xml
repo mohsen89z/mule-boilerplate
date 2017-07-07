@@ -1,0 +1,231 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:amqp="http://www.mulesoft.org/schema/mule/amqp"
+      xsi:schemaLocation="
+      http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/3.5/mule.xsd
+      http://www.mulesoft.org/schema/mule/amqp http://www.mulesoft.org/schema/mule/amqp/3.3/mule-amqp.xsd
+      http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/3.5/mule-http.xsd">
+
+    <catch-exception-strategy name="ContactUsException" enableNotifications="true">
+        <transformer ref="contactUsExceptionToResponseMessage"/>
+        <amqp:outbound-endpoint connector-ref="amqpRabbitMQConnector" exchangeName="${exchange.contactUsResponse}"
+                                exchangeType="topic" exchangeDurable="true" routingKey="${core.routing.key}"/>
+    </catch-exception-strategy>
+
+    <catch-exception-strategy name="BankListException" enableNotifications="true">
+        <transformer ref="bankListExceptionToResponseMessage"/>
+        <amqp:outbound-endpoint connector-ref="amqpRabbitMQConnector" exchangeName="${exchange.bankListResponse}"
+                                exchangeType="topic" exchangeDurable="true" routingKey="${core.routing.key}"/>
+    </catch-exception-strategy>
+
+    <catch-exception-strategy name="RegistrationEntryException" enableNotifications="true">
+        <transformer ref="regEntryExceptionToResponseMessage"/>
+        <gzip-compress-transformer/>
+        <set-property propertyName="Content-Encoding" value="gzip"/>
+        <amqp:outbound-endpoint connector-ref="amqpRabbitMQConnector" exchangeName="${exchange.regEntryResponse}"
+                                exchangeType="topic" exchangeDurable="true" routingKey="${core.routing.key}"/>
+    </catch-exception-strategy>
+
+    <catch-exception-strategy name="RegistrationSMSTokenException" enableNotifications="true">
+        <transformer ref="regSMSTokenExceptionToResponseMessage"/>
+        <amqp:outbound-endpoint connector-ref="amqpRabbitMQConnector" exchangeName="${exchange.regSMSTokenResponse}"
+                                exchangeType="topic" exchangeDurable="true" routingKey="${core.routing.key}"/>
+    </catch-exception-strategy>
+
+    <catch-exception-strategy name="RegistrationVerifyMobileException" enableNotifications="true">
+        <transformer ref="regVerifyMobileExceptionToResponseMessage"/>
+        <amqp:outbound-endpoint connector-ref="amqpRabbitMQConnector" exchangeName="${exchange.regVerifyMobileResponse}"
+                                exchangeType="topic" exchangeDurable="true" routingKey="${core.routing.key}"/>
+    </catch-exception-strategy>
+
+    <catch-exception-strategy name="RegistrationFetchUserDataException" enableNotifications="true">
+        <transformer ref="regFetchDataExceptionToResponseMessage"/>
+        <amqp:outbound-endpoint connector-ref="amqpRabbitMQConnector" exchangeName="${exchange.regFetchDataResponse}"
+                                exchangeType="topic" exchangeDurable="true" routingKey="${core.routing.key}"/>
+    </catch-exception-strategy>
+
+    <catch-exception-strategy name="RegistrationConfirmUserDataException" enableNotifications="true">
+        <transformer ref="regConfirmDataExceptionToResponseMessage"/>
+        <amqp:outbound-endpoint connector-ref="amqpRabbitMQConnector" exchangeName="${exchange.regConfirmDataResponse}"
+                                exchangeType="topic" exchangeDurable="true" routingKey="${core.routing.key}"/>
+    </catch-exception-strategy>
+
+    <catch-exception-strategy name="RegistrationVerifyAccountException" enableNotifications="true">
+        <transformer ref="regVerifyAcctExceptionToResponseMessage"/>
+        <amqp:outbound-endpoint connector-ref="amqpRabbitMQConnector" exchangeName="${exchange.regVerifyAcctResponse}"
+                                exchangeType="topic" exchangeDurable="true" routingKey="${core.routing.key}"/>
+    </catch-exception-strategy>
+
+    <catch-exception-strategy name="RegistrationVerifyXferException" enableNotifications="true">
+        <transformer ref="regVerifyXferExceptionToResponseMessage"/>
+        <amqp:outbound-endpoint connector-ref="amqpRabbitMQConnector" exchangeName="${exchange.regVerifyXferResponse}"
+                                exchangeType="topic" exchangeDurable="true" routingKey="${core.routing.key}"/>
+    </catch-exception-strategy>
+
+    <catch-exception-strategy name="RegistrationCredentialEntryException" enableNotifications="true">
+        <flow-ref name="DeleteUser"/>
+        <transformer ref="regCredentialExceptionToResponseMessage"/>
+        <gzip-compress-transformer/>
+        <set-property propertyName="Content-Encoding" value="gzip"/>
+        <amqp:outbound-endpoint connector-ref="amqpRabbitMQConnector" exchangeName="${exchange.regCredentialResponse}"
+                                exchangeType="topic" exchangeDurable="true" routingKey="${core.routing.key}"/>
+    </catch-exception-strategy>
+
+    <catch-exception-strategy name="MobileRegistrationIdEntryException" enableNotifications="true">
+        <transformer ref="mobileRegistrationIdEntryExceptionToResponseMessage"/>
+        <amqp:outbound-endpoint connector-ref="amqpRabbitMQConnector" exchangeName="${exchange.mobileRegEntryResponse}"
+                                exchangeType="topic" exchangeDurable="true" routingKey="${core.routing.key}"/>
+    </catch-exception-strategy>
+
+    <catch-exception-strategy name="HampayEnabledContactException" enableNotifications="true">
+        <transformer ref="hampayEnabledContactExceptionToResponseMessage"/>
+        <gzip-compress-transformer/>
+        <set-property propertyName="Content-Encoding" value="gzip"/>
+        <amqp:outbound-endpoint connector-ref="amqpRabbitMQConnector"
+                                exchangeName="${exchange.hpEnabledContactsResponse}"
+                                exchangeType="topic" exchangeDurable="true" routingKey="${core.routing.key}"/>
+    </catch-exception-strategy>
+
+    <catch-exception-strategy name="BusinessPaymentConfirmException" enableNotifications="true">
+        <transformer ref="bizPayConfirmExceptionToResponseMessage"/>
+        <amqp:outbound-endpoint connector-ref="amqpRabbitMQConnector"
+                                exchangeName="${exchange.bizPaymentConfirmResponse}"
+                                exchangeType="topic" exchangeDurable="true" routingKey="${core.routing.key}"/>
+    </catch-exception-strategy>
+
+    <catch-exception-strategy name="BusinessPaymentException" enableNotifications="true">
+        <transformer ref="bizPaymentExceptionToResponseMessage"/>
+        <amqp:outbound-endpoint connector-ref="amqpRabbitMQConnector" exchangeName="${exchange.bizPaymentResponse}"
+                                exchangeType="topic" exchangeDurable="true" routingKey="${core.routing.key}"/>
+    </catch-exception-strategy>
+
+    <catch-exception-strategy name="IndividualPaymentConfirmException" enableNotifications="true">
+        <transformer ref="individualPaymentConfirmExceptionToResponseMessage"/>
+        <amqp:outbound-endpoint connector-ref="amqpRabbitMQConnector"
+                                exchangeName="${exchange.individualPayConfirmResponse}"
+                                exchangeType="topic" exchangeDurable="true" routingKey="${core.routing.key}"/>
+    </catch-exception-strategy>
+
+    <catch-exception-strategy name="IndividualPaymentException" enableNotifications="true">
+        <transformer ref="individualPaymentExceptionToResponseMessage"/>
+        <amqp:outbound-endpoint connector-ref="amqpRabbitMQConnector" exchangeName="${exchange.IndividualPayResponse}"
+                                exchangeType="topic" exchangeDurable="true" routingKey="${core.routing.key}"/>
+    </catch-exception-strategy>
+
+    <catch-exception-strategy name="GetCustomerInfoException" enableNotifications="true">
+        <transformer ref="getCustomerInfoExceptionToResponseMessage"/>
+        <amqp:outbound-endpoint queueName="${queue.userCustomerInfoResponse}" exchange-pattern="one-way"
+                                connector-ref="amqpRabbitMQConnector"/>
+    </catch-exception-strategy>
+
+    <catch-exception-strategy name="ChangePassCodeException" enableNotifications="true">
+        <transformer ref="changePassCodeExceptionToResponseMessage"/>
+        <amqp:outbound-endpoint connector-ref="amqpRabbitMQConnector" exchangeName="${exchange.changePassResponse}"
+                                exchangeType="topic" exchangeDurable="true" routingKey="${core.routing.key}"/>
+    </catch-exception-strategy>
+
+    <catch-exception-strategy name="ChangeMemWordException" enableNotifications="true">
+        <transformer ref="changeMemWordExceptionToResponseMessage"/>
+        <amqp:outbound-endpoint connector-ref="amqpRabbitMQConnector" exchangeName="${exchange.changeMemWordResponse}"
+                                exchangeType="topic" exchangeDurable="true" routingKey="${core.routing.key}"/>
+    </catch-exception-strategy>
+
+    <catch-exception-strategy name="TransactionListException" enableNotifications="true">
+        <transformer ref="tnxListExceptionToResponseMessage"/>
+        <amqp:outbound-endpoint connector-ref="amqpRabbitMQConnector" exchangeName="${exchange.tnxListResponse}"
+                                exchangeType="topic" exchangeDurable="true" routingKey="${core.routing.key}"/>
+    </catch-exception-strategy>
+
+    <catch-exception-strategy name="BusinessListException" enableNotifications="true">
+        <transformer ref="bizListExceptionToResponseMessage"/>
+        <amqp:outbound-endpoint connector-ref="amqpRabbitMQConnector" exchangeName="${exchange.businessListResponse}"
+                                exchangeType="topic" exchangeDurable="true" routingKey="${core.routing.key}"/>
+    </catch-exception-strategy>
+
+    <catch-exception-strategy name="BusinessInfoException" enableNotifications="true">
+        <transformer ref="bizInfoExceptionToResponseMessage"/>
+        <amqp:outbound-endpoint connector-ref="amqpRabbitMQConnector" exchangeName="${exchange.bizInfoResponse}"
+                                exchangeType="topic" exchangeDurable="true" routingKey="${core.routing.key}"/>
+    </catch-exception-strategy>
+
+    <catch-exception-strategy name="BusinessSearchException" enableNotifications="true">
+        <transformer ref="bizSearchExceptionToResponseMessage"/>
+        <amqp:outbound-endpoint connector-ref="amqpRabbitMQConnector" exchangeName="${exchange.bizSearchResponse}"
+                                exchangeType="topic" exchangeDurable="true" routingKey="${core.routing.key}"/>
+    </catch-exception-strategy>
+
+    <catch-exception-strategy name="VerifyAccountException" enableNotifications="true">
+        <transformer ref="verifyAccountExceptionToResponseMessage"/>
+        <amqp:outbound-endpoint connector-ref="amqpRabbitMQConnector" exchangeName="${exchange.verifyAcctResponse}"
+                                exchangeType="topic" exchangeDurable="true" routingKey="${core.routing.key}"/>
+    </catch-exception-strategy>
+
+    <catch-exception-strategy name="VerifyXferException" enableNotifications="true">
+        <transformer ref="verifyXferExceptionToResponseMessage"/>
+        <amqp:outbound-endpoint connector-ref="amqpRabbitMQConnector" exchangeName="${exchange.verifyXferResponse}"
+                                exchangeType="topic" exchangeDurable="true" routingKey="${core.routing.key}"/>
+    </catch-exception-strategy>
+
+    <catch-exception-strategy name="TacException" enableNotifications="true">
+        <transformer ref="tacExceptionToResponseMessage"/>
+        <amqp:outbound-endpoint connector-ref="amqpRabbitMQConnector" exchangeName="${exchange.tacResponse}"
+                                exchangeType="topic" exchangeDurable="true" routingKey="${core.routing.key}"/>
+    </catch-exception-strategy>
+
+    <catch-exception-strategy name="TACAcceptException" enableNotifications="true">
+        <transformer ref="tacAcceptExceptionToResponseMessage"/>
+        <amqp:outbound-endpoint connector-ref="amqpRabbitMQConnector" exchangeName="${exchange.tacAcceptResponse}"
+                                exchangeType="topic" exchangeDurable="true" routingKey="${core.routing.key}"/>
+    </catch-exception-strategy>
+
+    <catch-exception-strategy name="UserProfileException" enableNotifications="true">
+        <transformer ref="userProfileExceptionToResponseMessage"/>
+        <amqp:outbound-endpoint connector-ref="amqpRabbitMQConnector" exchangeName="${exchange.profileResponse}"
+                                exchangeType="topic" exchangeDurable="true" routingKey="${core.routing.key}"/>
+    </catch-exception-strategy>
+
+    <catch-exception-strategy name="EventListException" enableNotifications="true">
+        <transformer ref="eventListExceptionToResponseMessage"/>
+        <amqp:outbound-endpoint connector-ref="amqpRabbitMQConnector" exchangeName="${exchange.eventListResponse}"
+                                exchangeType="topic" exchangeDurable="true" routingKey="${core.routing.key}"/>
+    </catch-exception-strategy>
+
+    <catch-exception-strategy name="RestRouterException" enableNotifications="true">
+        <transformer ref="restRouterExceptionToResponseMessage"/>
+    </catch-exception-strategy>
+
+    <catch-exception-strategy name="UnlinkUserException" enableNotifications="true">
+        <transformer ref="unlinkUserExceptionToResponseMessage"/>
+        <amqp:outbound-endpoint connector-ref="amqpRabbitMQConnector" exchangeName="${exchange.unlinkUserResponse}"
+                                exchangeType="topic" exchangeDurable="true" routingKey="${core.routing.key}"/>
+    </catch-exception-strategy>
+
+    <catch-exception-strategy name="GetUserIdTokenException" enableNotifications="true">
+        <transformer ref="getUserIdTokenExceptionToResponseMessage"/>
+        <amqp:outbound-endpoint connector-ref="amqpRabbitMQConnector" exchangeName="${exchange.getUserIdTokenResponse}"
+                                exchangeType="topic" exchangeDurable="true" routingKey="${core.routing.key}"/>
+
+    </catch-exception-strategy>
+
+    <catch-exception-strategy name="UploadImageException" enableNotifications="true">
+        <transformer ref="uploadImageExceptionToResponseMessage"/>
+        <amqp:outbound-endpoint connector-ref="amqpRabbitMQConnector" exchangeName="${exchange.uploadImageResponse}"
+                                exchangeType="topic" exchangeDurable="true" routingKey="${core.routing.key}"/>
+
+    </catch-exception-strategy>
+
+    <catch-exception-strategy name="ChangeEmailException" enableNotifications="true">
+        <transformer ref="changeEmailExceptionToResponseMessage"/>
+        <amqp:outbound-endpoint connector-ref="amqpRabbitMQConnector" exchangeName="${exchange.changeEmailResponse}"
+                                exchangeType="topic" exchangeDurable="true" routingKey="${core.routing.key}"/>
+    </catch-exception-strategy>
+
+    <catch-exception-strategy name="IllegalAppListException" enableNotifications="true">
+        <transformer ref="illegalAppListExceptionToResponseMessage"/>
+        <amqp:outbound-endpoint connector-ref="amqpRabbitMQConnector" exchangeName="${exchange.illegalAppListResponse}"
+                                exchangeType="topic" exchangeDurable="true" routingKey="${core.routing.key}"/>
+    </catch-exception-strategy>
+
+</mule>

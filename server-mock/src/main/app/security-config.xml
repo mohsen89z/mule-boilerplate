@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xsi:schemaLocation="
+      http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/3.5/mule.xsd
+      http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/3.5/mule-http.xsd">
+
+    <flow name="ChangePasscodeFlow">
+        <byte-array-to-string-transformer/>
+        <transformer ref="changePassCodeRequestTransformer"/>
+        <set-variable variableName="authorized" value="#[true]"/>
+
+        <choice>
+            <when expression="#[flowVars.authorized]">
+                <invoke object-ref="securityResponseBuilder" method="createChangePassCodeSuccessResponse"
+                        methodArguments="#[payload.service]"/>
+            </when>
+            <otherwise>
+               <logger level="INFO" message="Change passcode failed"/>
+            </otherwise>
+        </choice>
+        <transformer ref="ResponseMessageToJson"/>
+        <set-property propertyName="Content-Type" value="application/json; charset=utf-8"/>
+    </flow>
+
+    <flow name="ChangeMemWordFlow">
+        <byte-array-to-string-transformer/>
+        <transformer ref="changeMemorableWordRequestTransformer"/>
+        <set-variable variableName="authorized" value="#[true]"/>
+
+        <choice>
+            <when expression="#[flowVars.authorized]">
+                <invoke object-ref="securityResponseBuilder" method="createChangeMemWordSuccessResponse"
+                        methodArguments="#[payload.service]"/>
+            </when>
+            <otherwise>
+               <logger level="INFO" message="Change memorable word failed"/>
+            </otherwise>
+        </choice>
+        <transformer ref="ResponseMessageToJson"/>
+        <set-property propertyName="Content-Type" value="application/json; charset=utf-8"/>
+    </flow>
+
+</mule>

@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns:spring="http://www.springframework.org/schema/beans"
+      xmlns:context="http://www.springframework.org/schema/context"
+      xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/3.5/mule.xsd
+      http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/3.5/mule-http.xsd
+      http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.2.xsd
+      http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.2.xsd">
+
+    <description>This configuration uses an HTTP endpoint to receive requests.</description>
+
+    <context:property-placeholder
+            location="queue.properties, persistence.properties, security.properties, hampay-switch.properties, contacts.properties,notification.properties"/>
+
+    <configuration doc:name="Configuration">
+        <default-dispatcher-threading-profile
+                doThreading="true" maxBufferSize="24" maxThreadsActive="40"
+                maxThreadsIdle="8"/>
+        <default-receiver-threading-profile
+                maxThreadsIdle="8" maxThreadsActive="40" doThreading="true"/>
+        <default-service-threading-profile
+                doThreading="true" maxThreadsActive="40" maxThreadsIdle="8"
+                maxBufferSize="24"/>
+    </configuration>
+
+    <spring:bean id="objectStore" class="org.mule.util.store.SimpleMemoryObjectStore"/>
+    <spring:bean id="tokenStore" class="org.mule.util.store.SimpleMemoryObjectStore"/>
+
+    <sub-flow name="CopyHeaders" doc:name="copy-headers">
+        <copy-properties propertyName="*" doc:name="Copy All HTTP Headers"/>
+        <remove-property propertyName="Content-Length" doc:name="Remove Content Length"/>
+        <remove-property propertyName="MULE_*" doc:name="Remove MULE Properties"/>
+        <remove-property propertyName="X_MULE*" doc:name="Remove X_MULE Properties"/>
+        <remove-property propertyName="X-MULE*" doc:name="Remove X-MULE Properties"/>
+        <set-property propertyName="Content-Type" value="application/json; charset=utf-8"/>
+    </sub-flow>
+
+    <spring:beans>
+        <spring:import resource="transformer-config.xml"/>
+        <spring:import resource="idp-config.xml"/>
+        <spring:import resource="rest-router-config.xml"/>
+        <spring:import resource="service-config.xml"/>
+        <spring:import resource="security-config.xml"/>
+        <spring:import resource="contact-config.xml"/>
+        <spring:import resource="connector-config.xml"/>
+        <spring:import resource="transaction-config.xml"/>
+        <spring:import resource="business-config.xml"/>
+        <spring:import resource="payment-config.xml"/>
+        <spring:import resource="individual-customer-config.xml"/>
+        <spring:import resource="hampay-switch-config.xml"/>
+        <spring:import resource="registration-config.xml"/>
+        <spring:import resource="banks-config.xml"/>
+        <spring:import resource="exception-config.xml"/>
+        <spring:import resource="contact-us-config.xml"/>
+        <spring:import resource="search-config.xml"/>
+        <spring:import resource="user-config.xml"/>
+        <spring:import resource="tac-config.xml"/>
+        <spring:import resource="event-config.xml"/>
+        <spring:import resource="notify-config.xml"/>
+        <spring:import resource="quartz-config.xml"/>
+        <spring:import resource="illegal-apps-config.xml"/>
+    </spring:beans>
+
+</mule>
+

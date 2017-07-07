@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns:amqp="http://www.mulesoft.org/schema/mule/amqp"
+      xsi:schemaLocation="
+      http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/3.5/mule.xsd
+      http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/3.5/mule-http.xsd
+      http://www.mulesoft.org/schema/mule/amqp http://www.mulesoft.org/schema/mule/amqp/3.3/mule-amqp.xsd">
+
+
+    <flow name="TermsAndConditionsFlow">
+        <amqp:inbound-endpoint queueName="${queue.tacRequest}" exchange-pattern="one-way"
+                               connector-ref="amqpRabbitMQConnector"/>
+        <byte-array-to-string-transformer/>
+        <transformer ref="tacRequestTransformer"/>
+        <set-variable variableName="requestPayload" value="#[payload]"/>
+
+        <flow-ref name="RetrieveUserInfo"/>
+
+        <choice>
+            <when expression="#[flowVars.authorized]">
+                <logger message="tac flow : #[flowVars.currentUser.userId]" level="INFO"/>
+                <flow-ref name="GetUserByUserId"/>
+                <invoke object-ref="tacService" method="checkAppVersion"
+                        methodArguments="#[payload.service.deviceId],#[payload.service.appVersion],#[flowVars.user]"/>
+                <flow-ref name="CreateTACResponse"/>
+            </when>
+            <otherwise>
+                <invoke object-ref="tacResponseProvider" method="createAuthenticationFailureTacResponse"
+                        methodArguments="#[payload.service.requestUUID]"/>
+            </otherwise>
+        </choice>
+        <transformer ref="ResponseMessageToJson"/>
+        <amqp:outbound-endpoint connector-ref="amqpRabbitMQConnector" exchangeName="${exchange.tacResponse}"
+                                exchangeType="topic" exchangeDurable="true" routingKey="${core.routing.key}"/>
+        <exception-strategy ref="TacException"/>
+    </flow>
+
+    <sub-flow name="CreateTACResponse">
+        <flow-ref name="UpdateLastAndRecentLoginDate"/>
+
+        <flow-ref name="GetTACFileUploadDate"/>
+        <choice>
+            <when expression="#[flowVars.user.tacAcceptDate == null || flowVars.user.tacAcceptDate.before(flowVars.tacUploadDate)]">
+                <invoke object-ref="tacResponseProvider" method="createShouldAcceptResponse"
+                        methodArguments="#[payload.service.requestUUID],#[flowVars.user]"/>
+            </when>
+            <otherwise>
+                <invoke object-ref="tacResponseProvider" method="createAlreadyAcceptedTACResponse"
+                        methodArguments="#[payload.service.requestUUID],#[flowVars.user]"/>
+            </otherwise>
+        </choice>
+    </sub-flow>
+
+    <sub-flow name="GetTACFileUploadDate">
+        <enricher target="#[variable:tacUploadDate]">
+            <invoke object-ref="tacService" method="getTACFileLatestUploadDate"/>
+        </enricher>
+    </sub-flow>
+
+    <flow name="TermsAndConditionsAcceptFlow">
+        <amqp:inbound-endpoint queueName="${queue.tacAcceptRequest}" exchange-pattern="one-way"
+                               connector-ref="amqpRabbitMQConnector"/>
+        <byte-array-to-string-transformer/>
+        <transformer ref="tacAcceptRequestTransformer"/>
+        <set-variable variableName="requestPayload" value="#[payload]"/>
+
+        <flow-ref name="RetrieveUserInfo"/>
+
+        <choice>
+            <when expression="#[flowVars.authorized]">
+                <flow-ref name="GetUserByUserId"/>
+                <invoke object-ref="tacService" method="updateUserTACInformation"
+                        methodArguments="#[flowVars.user.id]"/>
+                <invoke object-ref="tacResponseProvider" method="createTACAcceptResponse"
+                        methodArguments="#[payload.service.requestUUID],#[flowVars.user]"/>
+            </when>
+            <otherwise>
+                <invoke object-ref="tacResponseProvider" method="createAuthenticationFailureTACAcceptFailureResponse"
+                        methodArguments="#[payload.service.requestUUID]"/>
+            </otherwise>
+        </choice>
+        <transformer ref="ResponseMessageToJson"/>
+        <amqp:outbound-endpoint connector-ref="amqpRabbitMQConnector" exchangeName="${exchange.tacAcceptResponse}"
+                                exchangeType="topic" exchangeDurable="true" routingKey="${core.routing.key}"/>
+        <exception-strategy ref="TACAcceptException"/>
+    </flow>
+
+
+    <sub-flow name="UpdateLastAndRecentLoginDate">
+        <enricher target="#[variable:user]">
+            <invoke object-ref="tacService" method="updateLastAndRecentLoginDate"
+                    methodArguments="#[flowVars.user]"/>
+        </enricher>
+    </sub-flow>
+
+    <flow name="retrieveTACFile">
+        <invoke object-ref="tacService" method="getTACFileLatestVersionAsString"/>
+    </flow>
+
+</mule>

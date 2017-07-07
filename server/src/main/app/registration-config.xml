@@ -1,0 +1,380 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns:amqp="http://www.mulesoft.org/schema/mule/amqp"
+      xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/3.5/mule.xsd
+      http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/3.5/mule-http.xsd
+      http://www.mulesoft.org/schema/mule/amqp http://www.mulesoft.org/schema/mule/amqp/3.3/mule-amqp.xsd">
+
+    <!-- Registration entry, user enters his cell number, account number, bank and national code and submits request -->
+    <flow name="RegistrationEntryFlow" >
+        <amqp:inbound-endpoint queueName="${queue.registrationEntryRequest}" exchange-pattern="one-way"
+                               connector-ref="amqpRabbitMQConnector"/>
+        <gzip-uncompress-transformer returnClass="java.lang.String"/>
+        <transformer ref="registrationEntryRequestTransformer"/>
+
+        <set-variable variableName="requestPayload" value="#[payload]"/>
+        <set-variable variableName="userAccountBankCode"
+                      value="#[payload.service.bankCode]"/>
+        <set-variable variableName="userAccountNumber"
+                      value="#[payload.service.accountNumber]"/>
+        <set-variable variableName="userNationalCode"
+                      value="#[payload.service.nationalCode]"/>
+        <flow-ref name="FetchAccountInfoFromSwitchFlow"/>
+        <enricher target="#[variable:user]">
+            <invoke object-ref="registrationService" method="checkDuplicateCustomer"
+                    methodArguments="#[payload.service]"/>
+        </enricher>
+        <choice>
+            <when expression="#[!(flowVars.user is org.mule.transport.NullPayload)]">
+                <logger level="INFO" message="delete User is Running ......"/>
+                <set-variable variableName="username" value="#[flowVars.user.userId]"/>
+                <flow-ref name="DeleteUser"/>
+                <enricher target="#[variable:userIdToken]">
+                    <invoke object-ref="registrationService" method="overwriteUser"
+                            methodArguments="#[flowVars.requestPayload.service], #[flowVars.switchAccountProfile.service]"/>
+                </enricher>
+            </when>
+            <otherwise>
+                <enricher target="#[variable:userIdToken]">
+                    <invoke object-ref="registrationService" method="createUser"
+                            methodArguments="#[flowVars.requestPayload.service], #[flowVars.switchAccountProfile.service]"/>
+                </enricher>
+            </otherwise>
+        </choice>
+
+        <invoke object-ref="registrationResponseProvider" method="createEntrySuccessResponse"
+                methodArguments="#[flowVars.requestPayload.service.requestUUID], #[flowVars.userIdToken]"/>
+        <transformer ref="ResponseMessageToJson"/>
+        <gzip-compress-transformer/>
+        <set-property propertyName="Content-Encoding" value="gzip"/>
+        <amqp:outbound-endpoint connector-ref="amqpRabbitMQConnector" exchangeName="${exchange.regEntryResponse}"
+                                exchangeType="topic" exchangeDurable="true" routingKey="${core.routing.key}"/>
+        <exception-strategy ref="RegistrationEntryException"/>
+    </flow>
+
+    <sub-flow name="DeleteUser">
+        <flow-ref name="LoginToIdentityProvider"/>
+        <flow-ref name="ReadUserFromIdentityProvider"/>
+        <choice>
+            <when expression="#[flowVars.idpStatus == 200]">
+                <flow-ref name="DeleteUserFromIdentityProvider"/>
+                <logger message="Delete user result is #[flowVars.deleteUserResult]" level="INFO"/>
+            </when>
+            <otherwise>
+                <set-variable variableName="duplicate" value="#[false]"/>
+                <logger message="User did not read from idp"/>
+            </otherwise>
+        </choice>
+
+        <flow-ref name="LogoutOfIdentityProvider"/>
+
+    </sub-flow>
+
+    <!-- Registration send sms token, application requests a sms token to verify user cell number. This flow should send a sms to user's mobile device -->
+    <flow name="RegistrationSendSmsTokenFlow" >
+        <amqp:inbound-endpoint queueName="${queue.registrationSendSmsTokenRequest}" exchange-pattern="one-way"
+                               connector-ref="amqpRabbitMQConnector"/>
+        <byte-array-to-string-transformer/>
+        <transformer ref="registrationSendSmsTokenRequestTransformer"/>
+        <set-variable variableName="requestPayload" value="#[payload]"/>
+
+        <enricher target="#[variable:currentUser]">
+            <invoke object-ref="registrationService" method="getUserByUserIdToken"
+                    methodArguments="#[payload.service.userIdToken]"/>
+        </enricher>
+        <flow-ref name="SendSmsTokenFlow"/>
+        <invoke object-ref="registrationResponseProvider" method="createSendSmsTokenSuccessResponse"
+                methodArguments="#[flowVars.requestPayload.service.requestUUID]"/>
+        <transformer ref="ResponseMessageToJson"/>
+        <amqp:outbound-endpoint connector-ref="amqpRabbitMQConnector" exchangeName="${exchange.regSMSTokenResponse}"
+                                exchangeType="topic" exchangeDurable="true" routingKey="${core.routing.key}"/>
+        <exception-strategy ref="RegistrationSMSTokenException"/>
+    </flow>
+
+    <sub-flow name="SendSmsTokenFlow">
+        <enricher target="#[variable:smsToken]">
+            <invoke object-ref="registrationService" method="generateSmsToken"
+                    methodArguments="#[flowVars.currentUser]"/>
+        </enricher>
+        <invoke object-ref="registrationService" method="updateUserToSendSMSTokenStep"
+                methodArguments="#[flowVars.currentUser]"/>
+        <invoke object-ref="smsService" method="sendSMS"
+                methodArguments="#[flowVars.smsToken],#[flowVars.currentUser]"/>
+    </sub-flow>
+
+    <!-- Registration verify mobile, application submits the sms token entered by user to verify user cell number -->
+    <flow name="RegistrationVerifyMobileFlow">
+        <amqp:inbound-endpoint queueName="${queue.registrationVerifyMobileRequest}" exchange-pattern="one-way"
+                               connector-ref="amqpRabbitMQConnector"/>
+        <byte-array-to-string-transformer/>
+        <transformer ref="registrationVerifyMobileRequestTransformer"/>
+        <set-variable variableName="requestPayload" value="#[payload]"/>
+
+        <enricher target="#[variable:isMobileVerified]">
+            <invoke object-ref="registrationService" method="verifyMobile"
+                    methodArguments="#[payload.service]"/>
+        </enricher>
+
+        <invoke object-ref="registrationResponseProvider" method="createVerifyMobileResponse"
+                methodArguments="#[payload.service.requestUUID],#[flowVars.isMobileVerified]"/>
+
+        <transformer ref="ResponseMessageToJson"/>
+        <amqp:outbound-endpoint connector-ref="amqpRabbitMQConnector" exchangeName="${exchange.regVerifyMobileResponse}"
+                                exchangeType="topic" exchangeDurable="true" routingKey="${core.routing.key}"/>
+
+        <exception-strategy ref="RegistrationVerifyMobileException"/>
+    </flow>
+
+    <!-- Registration fetch user data, application requests user data based on userIdToken, to confirm user identity -->
+    <flow name="RegistrationFetchUserDataFlow">
+        <amqp:inbound-endpoint queueName="${queue.regFetchUserDataRequest}" exchange-pattern="one-way"
+                               connector-ref="amqpRabbitMQConnector"/>
+        <byte-array-to-string-transformer/>
+        <transformer ref="JsonToRequestMessage_RegistrationFetchUserDataRequest"/>
+        <set-variable variableName="requestPayload" value="#[payload]"/>
+
+        <enricher target="#[variable:userInfo]">
+            <invoke object-ref="userService" method="getUserByUserIdToken"
+                    methodArguments="#[payload.service.userIdToken]"/>
+        </enricher>
+
+        <invoke object-ref="registrationService" method="checkStepForFetchUserData"
+                methodArguments="#[flowVars.userInfo]"/>
+        <set-variable variableName="userAccountBankCode"
+                      value="#[flowVars.userInfo.customer.defaultAccount.bank.code]"/>
+        <set-variable variableName="userAccountNumber"
+                      value="#[flowVars.userInfo.customer.defaultAccount.accountNumber]"/>
+        <set-variable variableName="userNationalCode"
+                      value="#[flowVars.userInfo.customer.identityCode]"/>
+        <flow-ref name="FetchAccountInfoFromSwitchFlow"/>
+        <enricher target="#[variable:regFetchDataResponse]">
+            <invoke object-ref="securityService"
+                    method="convertSwitchAccountProfileToRegistrationUserDataResponse"
+                    methodArguments="#[flowVars.userInfo],#[flowVars.switchAccountProfile.service]"/>
+        </enricher>
+        <invoke object-ref="registrationService" method="updateRegistrationStatusForFetchUserData"
+                methodArguments="#[flowVars.userInfo]"/>
+        <invoke object-ref="securityResponseProvider" method="createRegistrationFetchUserDataResponse"
+                methodArguments="#[payload.service],#[flowVars.regFetchDataResponse]"/>
+        <transformer ref="ResponseMessageToJson"/>
+
+        <amqp:outbound-endpoint connector-ref="amqpRabbitMQConnector" exchangeName="${exchange.regFetchDataResponse}"
+                                exchangeType="topic" exchangeDurable="true" routingKey="${core.routing.key}"/>
+
+        <exception-strategy ref="RegistrationFetchUserDataException"/>
+    </flow>
+
+    <!-- Registration confirm user data, application sends identity confirmation request based on userIdToken, and server should log user data and confirmation date -->
+    <flow name="RegistrationConfirmUserDataFlow">
+        <amqp:inbound-endpoint queueName="${queue.regConfirmUserDataRequest}" exchange-pattern="one-way"
+                               connector-ref="amqpRabbitMQConnector"/>
+        <byte-array-to-string-transformer/>
+        <transformer ref="JsonToRequestMessage_RegistrationConfirmUserDataRequest"/>
+        <set-variable variableName="requestPayload" value="#[payload]"/>
+        <enricher target="#[variable:user]">
+            <invoke object-ref="userService" method="getUserByUserIdToken"
+                    methodArguments="#[payload.service.userIdToken]"/>
+        </enricher>
+
+        <invoke object-ref="registrationService" method="checkStepForConfirmUserData"
+                methodArguments="#[flowVars.user]"/>
+
+        <enricher target="#[variable:confirmDate]">
+            <invoke object-ref="securityService" method="confirmRegistrationUserData"
+                    methodArguments="#[payload.service],#[flowVars.user]"/>
+        </enricher>
+        <invoke object-ref="registrationService" method="updateRegistrationStatusForConfirmUserDate"
+                methodArguments="#[flowVars.user]"/>
+        <invoke object-ref="securityResponseProvider" method="createSuccessRegistrationConfirmUserDataResponse"
+                methodArguments="#[payload.service],#[flowVars.confirmDate]"/>
+
+        <transformer ref="ResponseMessageToJson"/>
+        <amqp:outbound-endpoint connector-ref="amqpRabbitMQConnector" exchangeName="${exchange.regConfirmDataResponse}"
+                                exchangeType="topic" exchangeDurable="true" routingKey="${core.routing.key}"/>
+        <exception-strategy ref="RegistrationConfirmUserDataException"/>
+    </flow>
+
+    <flow name="RegistrationVerifyAccountFlow">
+        <amqp:inbound-endpoint queueName="${queue.regVerifyAccountRequest}" exchange-pattern="one-way"
+                               connector-ref="amqpRabbitMQConnector"/>
+        <byte-array-to-string-transformer/>
+        <transformer ref="registrationVerifyAccountRequestTransformer"/>
+        <set-variable variableName="requestPayload" value="#[payload]"/>
+        <enricher target="#[variable:user]">
+            <invoke object-ref="userService" method="getUserByUserIdToken"
+                    methodArguments="#[payload.service.userIdToken]"/>
+        </enricher>
+        <invoke object-ref="registrationService" method="checkRegistrationStatusForAccountVerification"
+                methodArguments="#[flowVars.user]"/>
+
+        <enricher target="#[variable:verificationHistory]">
+            <invoke object-ref="verificationHistoryService" method="getUnsettledVerificationHistoryStatus"
+                    methodArguments="#[flowVars.user]"/>
+        </enricher>
+
+        <choice>
+            <when expression="#[!(flowVars.verificationHistory is org.mule.transport.NullPayload)]">
+                <flow-ref name="GetVerifyAccountInfoFromUserVerification"/>
+            </when>
+            <otherwise>
+                <flow-ref name="GetVerifyAccountInfo"/>
+                <flow-ref name="SendPaymentRequestForRegistrationToSwitchFlow"/>
+                <invoke object-ref="verificationHistoryService" method="createAndSaveUserVerificationHistoryForUser"
+                        methodArguments="#[flowVars.user],#[flowVars.depositDTO.amount]"/>
+            </otherwise>
+        </choice>
+        <invoke object-ref="registrationService" method="updateRegistrationStatusForAccountVerify"
+                methodArguments="#[flowVars.user]"/>
+
+        <invoke object-ref="registrationResponseProvider" method="createRegistrationVerifyAccountResponse"
+                methodArguments="#[flowVars.DepositDTO],#[flowVars.requestPayload.service.requestUUID]"/>
+        <transformer ref="ResponseMessageToJson"/>
+        <amqp:outbound-endpoint connector-ref="amqpRabbitMQConnector" exchangeName="${exchange.regVerifyAcctResponse}"
+                                exchangeType="topic" exchangeDurable="true" routingKey="${core.routing.key}"/>
+        <exception-strategy ref="RegistrationVerifyAccountException"/>
+    </flow>
+
+    <sub-flow name="GetVerifyAccountInfo">
+        <enricher target="#[variable:depositDTO]">
+            <invoke object-ref="registrationService" method="createDepositAmountDTO"
+                    methodArguments="#[flowVars.user]"/>
+        </enricher>
+    </sub-flow>
+
+    <sub-flow name="GetVerifyAccountInfoFromUserVerification">
+        <enricher target="#[variable:depositDTO]">
+            <invoke object-ref="registrationService" method="createDepositAmountDTOFromUserVerification"
+                    methodArguments="#[flowVars.verificationHistory],#[flowVars.user]"/>
+        </enricher>
+    </sub-flow>
+
+    <flow name="RegistrationVerifyTransferMoneyFlow">
+        <amqp:inbound-endpoint queueName="${queue.regVerifyXferRequest}" exchange-pattern="one-way"
+                               connector-ref="amqpRabbitMQConnector"/>
+        <byte-array-to-string-transformer/>
+        <transformer ref="registrationVerifyXferRequestTransformer"/>
+        <set-variable variableName="requestPayload" value="#[payload]"/>
+        <enricher target="#[variable:user]">
+            <invoke object-ref="userService" method="getUserByUserIdToken"
+                    methodArguments="#[payload.service.userIdToken]"/>
+        </enricher>
+        <invoke object-ref="registrationService" method="checkRegistrationStatusForXferVerification"
+                methodArguments="#[flowVars.user]"/>
+        <enricher target="#[variable:verificationHistory]">
+            <invoke object-ref="verificationHistoryService" method="findUnsettledVerificationByUserId"
+                    methodArguments="#[flowVars.user]"/>
+        </enricher>
+
+        <flow-ref name="SendVerifyTransactionRequestToSwitchFlow"/>
+
+        <invoke object-ref="registrationService" method="updateRegistrationStatusForVerifyXfer"
+                methodArguments="#[flowVars.user],#[flowVars.verificationHistory]"/>
+        <invoke object-ref="registrationResponseProvider" method="createVerifiedRegistrationTransferMoneyResponse"
+                methodArguments="#[payload.service.requestUUID]"/>
+        <transformer ref="ResponseMessageToJson"/>
+        <amqp:outbound-endpoint connector-ref="amqpRabbitMQConnector" exchangeName="${exchange.regVerifyXferResponse}"
+                                exchangeType="topic" exchangeDurable="true" routingKey="${core.routing.key}"/>
+        <exception-strategy ref="RegistrationVerifyXferException"/>
+    </flow>
+
+
+    <flow name="RegistrationCredentialEntryFlow" processingStrategy="synchronous">
+        <amqp:inbound-endpoint queueName="${queue.registrationCredentialEntryRequest}" exchange-pattern="one-way"
+                               connector-ref="amqpRabbitMQConnector"/>
+        <gzip-uncompress-transformer returnClass="java.lang.String"/>
+        <transformer ref="registrationCredentialEntryRequestTransformer"/>
+        <set-variable variableName="requestPayload" value="#[payload]"/>
+        <enricher target="#[variable:idpUserDTO]">
+            <invoke object-ref="registrationService" method="createIdpUserDTO"
+                    methodArguments="#[payload.service]"/>
+        </enricher>
+
+        <flow-ref name="CreateUser"/>
+        <choice>
+            <when expression="#[flowVars.idpStatus == 200 || flowVars.idpStatus == 201]">
+                <enricher target="#[variable:user]">
+                    <invoke object-ref="registrationService" method="activateUser"
+                            methodArguments="#[flowVars.requestPayload.service]"/>
+                </enricher>
+
+                <set-payload value="#[flowVars.requestPayload]"/>
+
+                <flow-ref name="setHampayEnabledContacts"/>
+
+                <invoke object-ref="registrationResponseProvider" method="createCredentialEntrySuccessResponse"
+                        methodArguments="#[flowVars.requestPayload.service.requestUUID],#[flowVars.refinedContacts],#[flowVars.user.userIdToken]"/>
+
+            </when>
+            <otherwise>
+                <invoke object-ref="registrationResponseProvider" method="createCredentialEntryFailureResponse"
+                        methodArguments="#[flowVars.requestPayload.service.requestUUID]"/>
+            </otherwise>
+        </choice>
+
+        <transformer ref="ResponseMessageToJson"/>
+        <gzip-compress-transformer/>
+        <message-properties-transformer>
+            <add-message-property key="Content-Encoding" value="gzip"/>
+        </message-properties-transformer>
+        <amqp:outbound-endpoint connector-ref="amqpRabbitMQConnector" exchangeName="${exchange.regCredentialResponse}"
+                                exchangeType="topic" exchangeDurable="true" routingKey="${core.routing.key}"/>
+
+        <exception-strategy ref="RegistrationCredentialEntryException"/>
+    </flow>
+
+    <flow name="MobileRegistrationIdEntryFlow">
+        <amqp:inbound-endpoint queueName="${queue.mobileRegistrationIdRequest}" exchange-pattern="one-way"
+                               connector-ref="amqpRabbitMQConnector"/>
+        <byte-array-to-string-transformer/>
+        <transformer ref="mobileRegistrationIdEntryRequestTransformer"/>
+        <flow-ref name="RetrieveUserInfo"/>
+        <choice>
+            <when expression="#[flowVars.authorized]">
+                <set-variable variableName="requestPayload" value="#[payload]"/>
+                <flow-ref name="GetUserByUserId"/>
+                <invoke object-ref="registrationService" method="saveRegistrationIdForUser"
+                        methodArguments="#[payload.service.deviceId],#[payload.service.registrationId],#[flowVars.user.id]"/>
+                <invoke object-ref="registrationResponseProvider" method="createMobileRegistrationIdEntryResponse"
+                        methodArguments="#[flowVars.requestPayload.service.requestUUID]"/>
+            </when>
+            <otherwise>
+                <invoke object-ref="registrationResponseProvider"
+                        method="createMobileRegistrationIdEntryAuthFailureResponse"
+                        methodArguments="#[flowVars.requestPayload.service.requestUUID]"/>
+            </otherwise>
+        </choice>
+        <transformer ref="ResponseMessageToJson"/>
+        <amqp:outbound-endpoint connector-ref="amqpRabbitMQConnector" exchangeName="${exchange.mobileRegEntryResponse}"
+                                exchangeType="topic" exchangeDurable="true" routingKey="${core.routing.key}"/>
+        <exception-strategy ref="MobileRegistrationIdEntryException"/>
+    </flow>
+
+
+    <sub-flow name="CreateUser">
+
+        <flow-ref name="LoginToIdentityProvider"/>
+        <set-variable variableName="username" value="#[flowVars.idpUserDTO.username]"/>
+        <flow-ref name="ReadUserFromIdentityProvider"/>
+        <choice>
+            <when expression="#[flowVars.idpStatus == 200]">
+                <flow-ref name="DeleteUserFromIdentityProvider"/>
+            </when>
+            <otherwise>
+                <logger message="CreateUser, no user found in idp" level="INFO"/>
+                <set-variable variableName="duplicate" value="#[false]"/>
+            </otherwise>
+        </choice>
+
+        <set-payload value="#[flowVars.idpUserDTO]"/>
+        <transformer ref="IdpUserDTOToJson"/>
+        <logger level="INFO" message="idp user is: #[payload]"/>
+        <flow-ref name="CreateUserInIdentityProvider"/>
+        <byte-array-to-string-transformer/>
+        <flow-ref name="LogoutOfIdentityProvider"/>
+    </sub-flow>
+
+
+</mule>

@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:spring="http://www.springframework.org/schema/beans"
+      xsi:schemaLocation="
+      http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/3.5/mule.xsd
+      http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/3.5/mule-http.xsd">
+
+    <flow name="IndividualPaymentConfirmFlow">
+        <byte-array-to-string-transformer/>
+        <logger message="IndividualPaymentConfirm payload in flow entry : #[payload]" level="INFO"/>
+        <transformer ref="individualPaymentConfirmRequestTransformer"/>
+        <logger message="IndividualPaymentConfirm payload requestUUID : #[payload.service.requestUUID]" level="INFO"/>
+        <set-variable variableName="authorized" value="#[true]"/>
+
+        <choice>
+            <when expression="#[flowVars.authorized]">
+                <invoke object-ref="paymentResponseBuilder" method="createIndividualPaymentConfirmSuccessResponse"
+                        methodArguments="#[payload.service]"/>
+                <set-property propertyName="status" value="200"/>
+            </when>
+            <otherwise>
+                <invoke object-ref="paymentResponseBuilder" method="createIndividualPaymentConfirmFailureResponse"
+                        methodArguments="#[payload.service]"/>
+                <set-property propertyName="status" value="401"/>
+            </otherwise>
+        </choice>
+        <transformer ref="ResponseMessageToJson"/>
+        <logger message="IndividualPaymentConfirm payload after transformation : #[payload]" level="INFO"/>
+        <set-property propertyName="Content-Type" value="application/json; charset=utf-8"/>
+    </flow>
+
+
+    <flow name="IndividualPaymentFlow">
+        <byte-array-to-string-transformer/>
+        <logger message="IndividualPayment payload in flow entry : #[payload]" level="INFO"/>
+        <transformer ref="individualPaymentRequestTransformer"/>
+        <logger message="IndividualPayment payload requestUUID : #[payload.service.requestUUID]" level="INFO"/>
+        <set-variable variableName="authorized" value="#[true]"/>
+
+        <choice>
+            <when expression="#[flowVars.authorized]">
+                <invoke object-ref="paymentResponseBuilder" method="createIndividualPaymentSuccessResponse"
+                        methodArguments="#[payload.service]"/>
+                <set-property propertyName="status" value="200"/>
+            </when>
+            <otherwise>
+                <invoke object-ref="paymentResponseBuilder" method="createIndividualPaymentFailureResponse"
+                        methodArguments="#[payload.service]"/>
+                <set-property propertyName="status" value="401"/>
+            </otherwise>
+        </choice>
+        <transformer ref="ResponseMessageToJson"/>
+        <logger message="IndividualPayment payload after transformation : #[payload]" level="INFO"/>
+        <set-property propertyName="Content-Type" value="application/json; charset=utf-8"/>
+    </flow>
+
+
+    <flow name="BusinessPaymentConfirmFlow">
+        <byte-array-to-string-transformer/>
+        <logger message="BusinessPaymentConfirm payload in flow entry : #[payload]" level="INFO"/>
+        <transformer ref="businessPaymentConfirmRequestTransformer"/>
+        <logger message="BusinessPaymentConfirm payload requestUUID : #[payload.service.requestUUID]" level="INFO"/>
+        <set-variable variableName="authorized" value="#[true]"/>
+
+        <choice>
+            <when expression="#[flowVars.authorized]">
+                <invoke object-ref="paymentResponseBuilder" method="createBusinessPaymentConfirmSuccessResponse"
+                        methodArguments="#[payload.service]"/>
+                <set-property propertyName="status" value="200"/>
+            </when>
+            <otherwise>
+                <invoke object-ref="paymentResponseBuilder" method="createBusinessPaymentConfirmFailureResponse"
+                        methodArguments="#[payload.service]"/>
+                <set-property propertyName="status" value="401"/>
+            </otherwise>
+        </choice>
+        <transformer ref="ResponseMessageToJson"/>
+        <logger message="BusinessPaymentConfirm payload after transformation : #[payload]" level="INFO"/>
+        <set-property propertyName="Content-Type" value="application/json; charset=utf-8"/>
+    </flow>
+
+
+    <flow name="BusinessPaymentFlow">
+        <byte-array-to-string-transformer/>
+        <logger message="BusinessPayment payload in flow entry : #[payload]" level="INFO"/>
+        <transformer ref="businessPaymentRequestTransformer"/>
+        <logger message="BusinessPayment payload requestUUID : #[payload.service.requestUUID]" level="INFO"/>
+        <set-variable variableName="authorized" value="#[true]"/>
+
+        <choice>
+            <when expression="#[flowVars.authorized]">
+                <invoke object-ref="paymentResponseBuilder" method="createBusinessPaymentSuccessResponse"
+                        methodArguments="#[payload.service]"/>
+                <set-property propertyName="status" value="200"/>
+            </when>
+            <otherwise>
+                <invoke object-ref="paymentResponseBuilder" method="createBusinessPaymentFailureResponse"
+                        methodArguments="#[payload.service]"/>
+                <set-property propertyName="status" value="401"/>
+            </otherwise>
+        </choice>
+        <transformer ref="ResponseMessageToJson"/>
+        <logger message="BusinessPayment payload after transformation : #[payload]" level="INFO"/>
+        <set-property propertyName="Content-Type" value="application/json; charset=utf-8"/>
+    </flow>
+
+</mule>

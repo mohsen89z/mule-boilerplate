@@ -1,0 +1,210 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns:json="http://www.mulesoft.org/schema/mule/json"
+      xmlns:spring="http://www.springframework.org/schema/beans"
+      xsi:schemaLocation="
+      http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/3.5/mule.xsd
+      http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/3.5/mule-http.xsd
+      http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/3.5/mule-json.xsd">
+
+    <json:json-to-object-transformer name="JsonToRequestMessage"
+                                     returnClass="xyz.homapay.hampay.common.common.request.RequestMessage"/>
+    <json:object-to-json-transformer name="ResponseMessageToJson"
+                                     sourceClass="xyz.homapay.hampay.common.common.response.ResponseMessage"/>
+
+    <!-- Bank list request transformer -->
+    <custom-transformer class="xyz.homapay.hampay.core.servermock.transformer.JsonToRequestMessageTransformer"
+                        name="bankListRequestTransformer">
+        <spring:property name="payloadType" value="BankListRequest"/>
+    </custom-transformer>
+
+    <!-- Registration entry request transformer -->
+    <custom-transformer class="xyz.homapay.hampay.core.servermock.transformer.JsonToRequestMessageTransformer"
+                        name="registrationEntryRequestTransformer">
+        <spring:property name="payloadType" value="RegistrationEntryRequest"/>
+    </custom-transformer>
+
+    <!-- Registration send sms token request transformer -->
+    <custom-transformer class="xyz.homapay.hampay.core.servermock.transformer.JsonToRequestMessageTransformer"
+                        name="registrationSendSmsTokenRequestTransformer">
+        <spring:property name="payloadType" value="RegistrationSendSmsTokenRequest"/>
+    </custom-transformer>
+
+    <!-- Registration verify mobile request transformer -->
+    <custom-transformer class="xyz.homapay.hampay.core.servermock.transformer.JsonToRequestMessageTransformer"
+                        name="registrationVerifyMobileRequestTransformer">
+        <spring:property name="payloadType" value="RegistrationVerifyMobileRequest"/>
+    </custom-transformer>
+
+    <!-- Registration account info request transformer -->
+    <custom-transformer class="xyz.homapay.hampay.core.servermock.transformer.JsonToRequestMessageTransformer"
+                        name="registrationAccountInfoRequestTransformer">
+        <spring:property name="payloadType" value="RegistrationAccountInfoRequest"/>
+    </custom-transformer>
+
+    <!-- Registration verify account request transformer -->
+    <custom-transformer class="xyz.homapay.hampay.core.servermock.transformer.JsonToRequestMessageTransformer"
+                        name="registrationVerifyAccountRequestTransformer">
+        <spring:property name="payloadType" value="RegistrationVerifyAccountRequest"/>
+    </custom-transformer>
+
+    <custom-transformer class="xyz.homapay.hampay.core.servermock.transformer.JsonToRequestMessageTransformer"
+                        name="registrationTransferMoneyRequestTransformer">
+        <spring:property name="payloadType" value="RegistrationVerifyTransferMoneyRequest"/>
+    </custom-transformer>
+
+
+    <!-- Registration fetch user data request transformer -->
+    <custom-transformer class="xyz.homapay.hampay.core.servermock.transformer.JsonToRequestMessageTransformer"
+                        name="registrationFetchUserDataRequestTransformer">
+        <spring:property name="payloadType" value="RegistrationFetchUserDataRequest"/>
+    </custom-transformer>
+
+    <!-- Registration confirm user data request transformer -->
+    <custom-transformer class="xyz.homapay.hampay.core.servermock.transformer.JsonToRequestMessageTransformer"
+                        name="registrationConfirmUserDataRequestTransformer">
+        <spring:property name="payloadType" value="RegistrationConfirmUserDataRequest"/>
+    </custom-transformer>
+
+    <!-- Registration pass code entry request transformer -->
+    <custom-transformer class="xyz.homapay.hampay.core.servermock.transformer.JsonToRequestMessageTransformer"
+                        name="registrationPassCodeEntryRequestTransformer">
+        <spring:property name="payloadType" value="RegistrationPassCodeEntryRequest"/>
+    </custom-transformer>
+
+    <!-- Registration memorable word entry request transformer -->
+    <custom-transformer class="xyz.homapay.hampay.core.servermock.transformer.JsonToRequestMessageTransformer"
+                        name="registrationMemorableWordEntryRequestTransformer">
+        <spring:property name="payloadType" value="RegistrationMemorableWordEntryRequest"/>
+    </custom-transformer>
+
+    <!-- Registration credentials request transformer -->
+    <custom-transformer class="xyz.homapay.hampay.core.servermock.transformer.JsonToRequestMessageTransformer"
+                        name="registrationCredentialsRequestTransformer">
+        <spring:property name="payloadType" value="RegistrationCredentialsRequest"/>
+    </custom-transformer>
+
+    <!-- TAC request transformer -->
+    <custom-transformer class="xyz.homapay.hampay.core.servermock.transformer.JsonToRequestMessageTransformer"
+                        name="tacRequestTransformer">
+        <spring:property name="payloadType" value="TACRequest"/>
+    </custom-transformer>
+
+    <!-- TAC accept request transformer -->
+    <custom-transformer class="xyz.homapay.hampay.core.servermock.transformer.JsonToRequestMessageTransformer"
+                        name="tacAcceptRequestTransformer">
+        <spring:property name="payloadType" value="TACAcceptRequest"/>
+    </custom-transformer>
+
+    <!-- User profile request transformer -->
+    <custom-transformer class="xyz.homapay.hampay.core.servermock.transformer.JsonToRequestMessageTransformer"
+                        name="userProfileRequestTransformer">
+        <spring:property name="payloadType" value="UserProfileRequest"/>
+    </custom-transformer>
+
+    <!-- Contacts hampay enabled request transformer -->
+    <custom-transformer class="xyz.homapay.hampay.core.servermock.transformer.JsonToRequestMessageTransformer"
+                        name="contactsHampayEnabledRequestTransformer">
+        <spring:property name="payloadType" value="ContactsHampayEnabledRequest"/>
+    </custom-transformer>
+
+    <!-- Business list request transformer -->
+    <custom-transformer class="xyz.homapay.hampay.core.servermock.transformer.JsonToRequestMessageTransformer"
+                        name="businessListRequestTransformer">
+        <spring:property name="payloadType" value="BusinessListRequest"/>
+    </custom-transformer>
+
+    <!-- Contact us request transformer -->
+    <custom-transformer class="xyz.homapay.hampay.core.servermock.transformer.JsonToRequestMessageTransformer"
+                        name="contactUsRequestTransformer">
+        <spring:property name="payloadType" value="ContactUsRequest"/>
+    </custom-transformer>
+
+    <!-- Business payment confirm request transformer -->
+    <custom-transformer class="xyz.homapay.hampay.core.servermock.transformer.JsonToRequestMessageTransformer"
+                        name="businessPaymentConfirmRequestTransformer">
+        <spring:property name="payloadType" value="BusinessPaymentConfirmRequest"/>
+    </custom-transformer>
+
+    <!-- Business payment request transformer -->
+    <custom-transformer class="xyz.homapay.hampay.core.servermock.transformer.JsonToRequestMessageTransformer"
+                        name="businessPaymentRequestTransformer">
+        <spring:property name="payloadType" value="BusinessPaymentRequest"/>
+    </custom-transformer>
+
+    <!-- Individual payment confirm request transformer -->
+    <custom-transformer class="xyz.homapay.hampay.core.servermock.transformer.JsonToRequestMessageTransformer"
+                        name="individualPaymentConfirmRequestTransformer">
+        <spring:property name="payloadType" value="IndividualPaymentConfirmRequest"/>
+    </custom-transformer>
+
+    <!-- Individual payment request transformer -->
+    <custom-transformer class="xyz.homapay.hampay.core.servermock.transformer.JsonToRequestMessageTransformer"
+                        name="individualPaymentRequestTransformer">
+        <spring:property name="payloadType" value="IndividualPaymentRequest"/>
+    </custom-transformer>
+
+    <!-- Transaction list request transformer -->
+    <custom-transformer class="xyz.homapay.hampay.core.servermock.transformer.JsonToRequestMessageTransformer"
+                        name="transactionListRequestTransformer">
+        <spring:property name="payloadType" value="TransactionListRequest"/>
+    </custom-transformer>
+
+    <!-- change pass code request transformer -->
+    <custom-transformer class="xyz.homapay.hampay.core.servermock.transformer.JsonToRequestMessageTransformer"
+                        name="changePassCodeRequestTransformer">
+        <spring:property name="payloadType" value="ChangePassCodeRequest"/>
+    </custom-transformer>
+
+    <!-- change memorable word request transformer -->
+    <custom-transformer class="xyz.homapay.hampay.core.servermock.transformer.JsonToRequestMessageTransformer"
+                        name="changeMemorableWordRequestTransformer">
+        <spring:property name="payloadType" value="ChangeMemorableWordRequest"/>
+    </custom-transformer>
+
+    <!-- verify account request transformer -->
+    <custom-transformer class="xyz.homapay.hampay.core.servermock.transformer.JsonToRequestMessageTransformer"
+                        name="verifyAccountRequestTransformer">
+        <spring:property name="payloadType" value="VerifyAccountRequest"/>
+    </custom-transformer>
+
+    <!-- verify transfer money request transformer -->
+    <custom-transformer class="xyz.homapay.hampay.core.servermock.transformer.JsonToRequestMessageTransformer"
+                        name="verifyTransferMoneyRequestTransformer">
+        <spring:property name="payloadType" value="VerifyTransferMoneyRequest"/>
+    </custom-transformer>
+
+    <!-- Search Business request transformer -->
+    <custom-transformer class="xyz.homapay.hampay.core.servermock.transformer.JsonToRequestMessageTransformer"
+                        name="searchBusinessRequestTransformer">
+        <spring:property name="payloadType" value="BusinessSearchRequest"/>
+    </custom-transformer>
+
+    <custom-transformer class="xyz.homapay.hampay.core.servermock.transformer.InputStreamToByteArrayTransformer"
+                        name="inputStreamToByteArrayTransformer">
+    </custom-transformer>
+
+    <custom-transformer class="xyz.homapay.hampay.core.servermock.transformer.JsonToRequestMessageTransformer"
+                        name="getUserIdTokenRequestTransformer">
+        <spring:property name="payloadType" value="GetUserIdTokenRequest"/>
+    </custom-transformer>
+
+    <custom-transformer class="xyz.homapay.hampay.core.servermock.transformer.JsonToRequestMessageTransformer"
+                        name="illegalAppRequestTransformer">
+        <spring:property name="payloadType" value="IllegalAppListRequest"/>
+    </custom-transformer>
+
+    <custom-transformer class="xyz.homapay.hampay.core.servermock.transformer.JsonToRequestMessageTransformer"
+                        name="unlinkUserRequestTransformer">
+        <spring:property name="payloadType" value="UnlinkUserRequest"/>
+    </custom-transformer>
+
+    <custom-transformer class="xyz.homapay.hampay.core.servermock.transformer.JsonToRequestMessageTransformer"
+                        name="eventListRequestTransformer">
+        <spring:property name="payloadType" value="EventListRequest"/>
+    </custom-transformer>
+
+</mule>
